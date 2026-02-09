@@ -1,0 +1,50 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+img {
+  display: block;
+}
+
+.swiper {
+  width: 100%;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: #6d28d9;
+  background: #ffffff;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.swiper-button-next::after,
+.swiper-button-prev::after {
+  font-size: 16px;
+}
+
+.swiper-pagination-bullet {
+  background: rgba(109, 40, 217, 0.35);
+  opacity: 1;
+}
+
+.swiper-pagination-bullet-active {
+  background: #6d28d9;
+}
+
+.swiper-slide {
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.swiper-slide:not(.swiper-slide-active) {
+  opacity: 0.6;
+}
