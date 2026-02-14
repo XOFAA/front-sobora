@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Box, Stack, TextField, Typography } from '@mui/material'
 import SearchRounded from '@mui/icons-material/SearchRounded'
 import EventSlider from '../components/event/EventSlider'
+import FaqSection from '../components/faq/FaqSection'
+import Footer from '../components/layout/Footer'
 import { fetchEvents } from '../services/events'
 
 function HomePage() {
@@ -38,7 +40,7 @@ function HomePage() {
   }, [events, search])
 
   return (
-    <Stack spacing={4}>
+    <Stack spacing={6}>
       <Box>
         <Typography variant="h4" fontWeight={700}>
           Descubra experiencias incriveis
@@ -62,6 +64,9 @@ function HomePage() {
       ) : (
         <EventSlider events={filtered} />
       )}
+
+      <FaqSection />
+      <Footer />
     </Stack>
   )
 }

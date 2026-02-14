@@ -17,11 +17,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 function AuthPage() {
-  const { login, register, requestCode } = useAuth()
+  const { register, requestCode } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState(0)
   const [identifier, setIdentifier] = useState('')
-  const [code, setCode] = useState('')
   const [registerForm, setRegisterForm] = useState({
     name: '',
     email: '',
@@ -40,20 +39,10 @@ function AuthPage() {
     }
     try {
       await requestCode(identifier)
-      setSuccess('Codigo enviado. Verifique seu email ou WhatsApp.')
+      sessionStorage.setItem('login_identifier', identifier)
+      navigate('/login/code', { state: { identifier } })
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao enviar codigo.')
-    }
-  }
-
-  const handleLogin = async () => {
-    setError('')
-    setSuccess('')
-    try {
-      await login(identifier, code)
-      navigate('/')
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Falha ao entrar.')
     }
   }
 
@@ -96,18 +85,10 @@ function AuthPage() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
               />
-              <Button variant="outlined" onClick={handleRequestCode}>
-                Enviar codigo
-              </Button>
-              <TextField
-                label="Codigo recebido"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
               {error ? <Alert severity="error">{error}</Alert> : null}
               {success ? <Alert severity="success">{success}</Alert> : null}
-              <Button variant="contained" onClick={handleLogin}>
-                Entrar
+              <Button variant="contained" onClick={handleRequestCode}>
+                Enviar codigo
               </Button>
             </Stack>
           ) : (

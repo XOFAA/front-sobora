@@ -7,15 +7,17 @@ import {
   Card,
   CardContent,
   Chip,
+  Drawer,
   Divider,
+  IconButton,
   Stack,
   Typography,
 } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded'
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
+import CloseRounded from '@mui/icons-material/CloseRounded'
 import { fetchEvent, fetchTicketTypes } from '../services/events'
-import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
@@ -36,6 +38,33 @@ function formatEventDateRange(event) {
   return `De ${first.toLocaleString('pt-BR')} a ${last.toLocaleString('pt-BR')}`
 }
 
+const YOUTUBE_URL_REGEX =
+  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?(?:[^\s"'<>]*?&)?\s*v=|youtube\.com\/embed\/|youtu\.be\/)([A-Za-z0-9_-]{6,})(?:[&?][^\s"'<>]*)?/gi
+const YOUTUBE_TOKEN_REGEX = /\[\[YOUTUBE:([A-Za-z0-9_-]{6,})\]\]/g
+
+function injectYouTubeTokens(html) {
+  if (!html) return ''
+  const normalized = html.replace(/&amp;/g, '&')
+  return normalized.replace(YOUTUBE_URL_REGEX, (_match, id) => `[[YOUTUBE:${id}]]`)
+}
+
+function renderDescriptionWithEmbeds(html) {
+  const withTokens = injectYouTubeTokens(html)
+  if (!withTokens) return []
+  const parts = withTokens.split(YOUTUBE_TOKEN_REGEX)
+  const blocks = []
+  for (let i = 0; i < parts.length; i += 1) {
+    const value = parts[i]
+    if (!value) continue
+    if (i % 2 === 1) {
+      blocks.push({ type: 'youtube', id: value })
+    } else {
+      blocks.push({ type: 'html', html: value })
+    }
+  }
+  return blocks
+}
+
 function EventDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -46,6 +75,7 @@ function EventDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [ticketSheetOpen, setTicketSheetOpen] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -84,31 +114,46 @@ function EventDetailsPage() {
     }, 0)
   }, [ticketTypes, quantities])
 
-  const handleCheckout = async () => {
+  const minPrice = useMemo(() => {
+    const prices = ticketTypes.map((ticket) => ticket.price || 0).filter((price) => price > 0)
+    if (!prices.length) return null
+    return Math.min(...prices)
+  }, [ticketTypes])
+
+  const formatPrice = (value) => `R$ ${(value / 100).toFixed(2)}`
+
+  const descriptionBlocks = useMemo(
+    () => renderDescriptionWithEmbeds(event?.description || ''),
+    [event?.description],
+  )
+
+  const handleCheckout = () => {
     setError('')
     setSuccess('')
-    if (!user) {
-      navigate('/login')
-      return
-    }
-    const items = Object.entries(quantities)
+    const selected = Object.entries(quantities)
       .filter(([, qty]) => qty > 0)
-      .map(([ticketTypeId, quantity]) => ({ ticketTypeId, quantity }))
-    if (!items.length) {
+      .map(([ticketTypeId, quantity]) => {
+        const ticketType = ticketTypes.find((ticket) => ticket.id === ticketTypeId)
+        return {
+          ticketTypeId,
+          quantity,
+          name: ticketType?.name || 'Ingresso',
+          price: ticketType?.price || 0,
+        }
+      })
+    if (!selected.length) {
       setError('Selecione ao menos um ingresso.')
       return
     }
-    try {
-      await createOrder(items)
-      setSuccess('Pedido criado com sucesso. Pagamento em modo mock.')
-      setQuantities({})
-    } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          'Falha ao criar pedido',
-      )
-    }
+    navigate('/checkout', {
+      state: {
+        event: {
+          id: event.id,
+          name: event.name,
+        },
+        items: selected,
+      },
+    })
   }
 
   if (loading) {
@@ -119,10 +164,74 @@ function EventDetailsPage() {
     return <Typography color="text.secondary">Evento nao encontrado.</Typography>
   }
 
+  const ticketList = (
+    <Stack spacing={2}>
+      {ticketTypes.length ? (
+        ticketTypes.map((ticket) => {
+          const qty = quantities[ticket.id] || 0
+          return (
+            <Stack
+              key={ticket.id}
+              spacing={1}
+              sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 2 }}
+            >
+              <Stack direction="row" justifyContent="space-between">
+                <Typography fontWeight={600}>{ticket.name}</Typography>
+                <Typography fontWeight={600}>
+                  {formatPrice(ticket.price || 0)}
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  onClick={() =>
+                    setQuantities((prev) => ({
+                      ...prev,
+                      [ticket.id]: Math.max(0, qty - 1),
+                    }))
+                  }
+                >
+                  -
+                </Button>
+                <Box
+                  sx={{
+                    minWidth: 42,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 2,
+                    bgcolor: 'background.default',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  {qty}
+                </Box>
+                <Button
+                  variant="outlined"
+                  onClick={() =>
+                    setQuantities((prev) => ({
+                      ...prev,
+                      [ticket.id]: qty + 1,
+                    }))
+                  }
+                >
+                  +
+                </Button>
+              </Stack>
+            </Stack>
+          )
+        })
+      ) : (
+        <Typography color="text.secondary">Nenhum ingresso disponivel.</Typography>
+      )}
+    </Stack>
+  )
+
   return (
-    <Stack spacing={3}>
+    <Stack spacing={3} sx={{ pb: { xs: 10, md: 0 } }}>
       <Card sx={{ overflow: 'hidden' }}>
-        <Box sx={{ height: { xs: 220, md: 320 }, bgcolor: 'background.default' }}>
+        <Box sx={{ height: { xs: 220, md: "auto" }, bgcolor: 'background.default' }}>
           {event.thumbDesktop ? (
             <Box
               component="img"
@@ -161,13 +270,53 @@ function EventDetailsPage() {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               {event.description ? (
-                <Box
-                  sx={{
-                    '& img': { maxWidth: '100%', borderRadius: 2 },
-                    '& p': { marginTop: 0 },
-                  }}
-                  dangerouslySetInnerHTML={{ __html: event.description }}
-                />
+                <Stack spacing={2}>
+                  {descriptionBlocks.map((block, index) => {
+                    if (block.type === 'youtube') {
+                      return (
+                        <Box
+                          key={`${block.id}-${index}`}
+                          sx={{
+                            position: 'relative',
+                            width: '100%',
+                            paddingTop: '56.25%',
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            bgcolor: 'background.default',
+                          }}
+                        >
+                          <Box
+                            component="iframe"
+                            src={`https://www.youtube.com/embed/${block.id}`}
+                            title="YouTube video"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            sx={{
+                              position: 'absolute',
+                              inset: 0,
+                              width: '100%',
+                              height: '100%',
+                              border: 0,
+                            }}
+                          />
+                        </Box>
+                      )
+                    }
+                    return (
+                      <Box
+                        key={`html-${index}`}
+                        sx={{
+                          '& img': { maxWidth: '100%', borderRadius: 2 },
+                          '& p': { marginTop: 0 },
+                          '& a': { wordBreak: 'break-word' },
+                          wordBreak: 'break-word',
+                          overflowWrap: 'anywhere',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: block.html }}
+                      />
+                    )
+                  })}
+                </Stack>
               ) : (
                 <Typography color="text.secondary">Descricao ainda nao informada.</Typography>
               )}
@@ -181,74 +330,14 @@ function EventDetailsPage() {
                 Selecione seus ingressos
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              <Stack spacing={2}>
-                {ticketTypes.length ? (
-                  ticketTypes.map((ticket) => {
-                    const qty = quantities[ticket.id] || 0
-                    return (
-                      <Stack
-                        key={ticket.id}
-                        spacing={1}
-                        sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 2 }}
-                      >
-                        <Stack direction="row" justifyContent="space-between">
-                          <Typography fontWeight={600}>{ticket.name}</Typography>
-                          <Typography fontWeight={600}>
-                            R$ {(ticket.price / 100).toFixed(2)}
-                          </Typography>
-                        </Stack>
-                        <Stack direction="row" spacing={1}>
-                          <Button
-                            variant="outlined"
-                            onClick={() =>
-                              setQuantities((prev) => ({
-                                ...prev,
-                                [ticket.id]: Math.max(0, qty - 1),
-                              }))
-                            }
-                          >
-                            -
-                          </Button>
-                          <Box
-                            sx={{
-                              minWidth: 42,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              borderRadius: 2,
-                              bgcolor: 'background.default',
-                              border: '1px solid',
-                              borderColor: 'divider',
-                            }}
-                          >
-                            {qty}
-                          </Box>
-                          <Button
-                            variant="outlined"
-                            onClick={() =>
-                              setQuantities((prev) => ({
-                                ...prev,
-                                [ticket.id]: qty + 1,
-                              }))
-                            }
-                          >
-                            +
-                          </Button>
-                        </Stack>
-                      </Stack>
-                    )
-                  })
-                ) : (
-                  <Typography color="text.secondary">Nenhum ingresso disponivel.</Typography>
-                )}
-              </Stack>
+              {ticketList}
               <Divider sx={{ my: 2 }} />
               <Stack spacing={1}>
                 <Typography fontWeight={600}>
                   Total de ingressos: {totalItems}
                 </Typography>
                 <Typography fontWeight={700}>
-                  Total: R$ {(totalPrice / 100).toFixed(2)}
+                  Total: {formatPrice(totalPrice)}
                 </Typography>
                 {error ? <Alert severity="error">{error}</Alert> : null}
                 {success ? <Alert severity="success">{success}</Alert> : null}
@@ -260,6 +349,67 @@ function EventDetailsPage() {
           </Card>
         </Grid>
       </Grid>
+
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          display: { xs: 'flex', md: 'none' },
+          bgcolor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          px: 2,
+          py: 1.5,
+          zIndex: 1200,
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Ingressos
+            </Typography>
+            <Typography fontWeight={700}>
+              {minPrice != null ? `A partir de ${formatPrice(minPrice)}` : 'Ver ingressos'}
+            </Typography>
+          </Box>
+          <Button variant="contained" onClick={() => setTicketSheetOpen(true)} disabled={!ticketTypes.length}>
+            Comprar
+          </Button>
+        </Stack>
+      </Box>
+
+      <Drawer
+        anchor="bottom"
+        open={ticketSheetOpen}
+        onClose={() => setTicketSheetOpen(false)}
+        PaperProps={{ sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, p: 2 } }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="h6" fontWeight={700}>
+            Ingressos
+          </Typography>
+          <IconButton onClick={() => setTicketSheetOpen(false)} aria-label="Fechar">
+            <CloseRounded />
+          </IconButton>
+        </Box>
+        {ticketList}
+        <Divider sx={{ my: 2 }} />
+        <Stack spacing={1}>
+          <Typography fontWeight={600}>
+            Total de ingressos: {totalItems}
+          </Typography>
+          <Typography fontWeight={700}>
+            Total: {formatPrice(totalPrice)}
+          </Typography>
+          {error ? <Alert severity="error">{error}</Alert> : null}
+          {success ? <Alert severity="success">{success}</Alert> : null}
+          <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length}>
+            Finalizar compra (mock)
+          </Button>
+        </Stack>
+      </Drawer>
     </Stack>
   )
 }
