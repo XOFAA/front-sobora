@@ -11,6 +11,7 @@ import {
   ListItemText,
   Stack,
   Toolbar,
+  Alert,
 } from '@mui/material'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -130,6 +131,19 @@ function MainLayout() {
         </List>
       </Drawer>
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {user && user?.faceEnrollment?.status !== 'VERIFIED' ? (
+          <Alert
+            severity="info"
+            sx={{ mb: 3, display: 'flex', alignItems: 'center' }}
+            action={(
+              <Button color="inherit" size="small" onClick={() => navigate('/face-enroll')}>
+                Fazer cadastro facial
+              </Button>
+            )}
+          >
+            Faça seu cadastro facial e evite filas maiores no dia do evento. A fila exclusiva é mais rápida.
+          </Alert>
+        ) : null}
         <Outlet />
       </Container>
     </Box>
