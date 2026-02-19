@@ -96,7 +96,7 @@ function FaceEnrollPage() {
     const detection = await faceapi
       .detectSingleFace(
         videoRef.current,
-        new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }),
+        new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.25 }),
       )
       .withFaceLandmarks()
       .withFaceDescriptor()
@@ -121,14 +121,21 @@ function FaceEnrollPage() {
     }
     try {
       setLoading(true)
-      const first = await captureDescriptor()
-      await new Promise((r) => setTimeout(r, 700))
-      const second = await captureDescriptor()
+      const samples = []
+      for (let i = 0; i < 6; i += 1) {
+        const shot = await captureDescriptor()
+        if (shot) samples.push(shot)
+        await new Promise((r) => setTimeout(r, 350))
+      }
 
-      if (!first || !second) {
+      if (samples.length < 2) {
         setStatus({ type: 'error', message: 'Não foi possível detectar o rosto. Tente novamente.' })
         return
       }
+
+      const bestByScore = [...samples].sort((a, b) => b.detection.score - a.detection.score)
+      const first = bestByScore[0]
+      const second = bestByScore[1] || bestByScore[0]
 
       const liveness = computePassiveLiveness(first, second)
       setLivenessScore(liveness)
