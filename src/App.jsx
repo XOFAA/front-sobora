@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+
 import MainLayout from './components/layout/MainLayout'
 import HomePage from './pages/HomePage'
 import EventDetailsPage from './pages/EventDetailsPage'

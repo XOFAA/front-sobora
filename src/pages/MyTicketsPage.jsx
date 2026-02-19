@@ -6,12 +6,15 @@ import {
   Card,
   CardContent,
   Chip,
+  Collapse,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
   IconButton,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from '@mui/material'
@@ -21,17 +24,159 @@ import PlaceRounded from '@mui/icons-material/PlaceRounded'
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
 import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded'
 import SendRounded from '@mui/icons-material/SendRounded'
-import { fetchMyTickets, requestTicketTransfer } from '../services/tickets'
+import { useAuth } from '../contexts/AuthContext'
+import { cancelTicketTransfer, fetchMyTickets, requestTicketTransfer } from '../services/tickets'
+import { fetchEvent } from '../services/events'
 import QRCode from 'qrcode'
 
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
+
+const resolveImage = (value) => {
+  if (!value) return ''
+  if (value.startsWith('http://') || value.startsWith('https://')) return value
+  if (value.startsWith('/')) return `${apiBaseUrl}${value}`
+  return `${apiBaseUrl}/${value}`
+}
+
+const getEventImageRaw = (event) =>
+  event?.thumbMobile ||
+  event?.thumb ||
+  event?.thumbDesktop ||
+  event?.image ||
+  event?.banner ||
+  event?.cover ||
+  ''
+
+const getEventDates = (event) => {
+  if (Array.isArray(event?.dates) && event.dates.length) return event.dates
+  if (event?.date) return [event.date]
+  return []
+}
+
+const getLastEventDate = (event) => {
+  const values = getEventDates(event)
+    .map((value) => new Date(value))
+    .filter((value) => !Number.isNaN(value.getTime()))
+  if (!values.length) return null
+  return new Date(Math.max(...values.map((date) => date.getTime())))
+}
+
+const formatEventDateRange = (event) => {
+  const dates = getEventDates(event)
+  if (!dates.length) return 'Sem data'
+  if (dates.length === 1) return new Date(dates[0]).toLocaleString('pt-BR')
+  const first = new Date(dates[0])
+  const last = new Date(dates[dates.length - 1])
+  return `De ${first.toLocaleString('pt-BR')} a ${last.toLocaleString('pt-BR')}`
+}
+
+const getOrderMeta = (ticket) => {
+  const orderValue = ticket.order
+  const orderIdFromObject =
+    orderValue && typeof orderValue === 'object'
+      ? (orderValue.id ?? orderValue.orderId ?? orderValue._id ?? null)
+      : null
+  const orderCodeFromObject =
+    orderValue && typeof orderValue === 'object'
+      ? (orderValue.code ?? orderValue.orderCode ?? orderValue.number ?? null)
+      : null
+  const orderCreatedAtFromObject =
+    orderValue && typeof orderValue === 'object'
+      ? (orderValue.createdAt ?? orderValue.created_at ?? null)
+      : null
+  const orderPrimitive =
+    orderValue && typeof orderValue !== 'object' ? orderValue : null
+
+  const orderId =
+    ticket.orderId ??
+    ticket.order_id ??
+    ticket.orderID ??
+    ticket.purchaseId ??
+    ticket.purchase_id ??
+    orderIdFromObject ??
+    orderPrimitive ??
+    null
+
+  const orderCode =
+    ticket.orderCode ??
+    ticket.order_code ??
+    ticket.orderNumber ??
+    ticket.order_number ??
+    orderCodeFromObject ??
+    null
+
+  const orderCreatedAt =
+    ticket.orderCreatedAt ??
+    ticket.order_created_at ??
+    orderCreatedAtFromObject ??
+    ticket.createdAt ??
+    ticket.created_at ??
+    null
+
+  const fallbackBucket = [
+    ticket.event?.id || ticket.eventId || 'event',
+    ticket.orderStatus || 'status',
+    ticket.paymentStatus || 'payment',
+    orderCreatedAt ? new Date(orderCreatedAt).toISOString().slice(0, 19) : 'no-date',
+  ].join('|')
+
+  const keyRaw = orderId ?? orderCode ?? fallbackBucket
+
+  return {
+    key: String(keyRaw),
+    orderId: orderId ?? null,
+    orderCode: orderCode ?? null,
+    orderCreatedAt: orderCreatedAt ?? null,
+  }
+}
+
+const getTransferExpiryDate = (ticket) => {
+  const expiresAt = ticket?.transfer?.expiresAt
+  if (!expiresAt) return null
+  const date = new Date(expiresAt)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const isTransferPending = (ticket, nowMs) => {
+  if (ticket?.transfer?.status !== 'PENDING') return false
+  const expiry = getTransferExpiryDate(ticket)
+  if (!expiry) return true
+  return expiry.getTime() > nowMs
+}
+
+const getTransferRemainingMs = (ticket, nowMs) => {
+  const expiry = getTransferExpiryDate(ticket)
+  if (!expiry) return 0
+  return Math.max(0, expiry.getTime() - nowMs)
+}
+
+const formatRemaining = (ms) => {
+  const safe = Math.max(0, ms)
+  const totalSeconds = Math.floor(safe / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
 function MyTicketsPage() {
+  const { user } = useAuth()
+  const [tab, setTab] = useState('ACTIVE')
   const [tickets, setTickets] = useState([])
+  const [eventImagesById, setEventImagesById] = useState({})
+  const [expandedOrders, setExpandedOrders] = useState({})
+  const [nowMs, setNowMs] = useState(Date.now())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [qrTicket, setQrTicket] = useState(null)
   const [qrImage, setQrImage] = useState('')
   const [qrLoading, setQrLoading] = useState(false)
+  const [cancelingTransferId, setCancelingTransferId] = useState('')
   const [transferForm, setTransferForm] = useState({
     toEmail: '',
     toPhone: '',
@@ -40,35 +185,134 @@ function MyTicketsPage() {
   })
   const [transferMessage, setTransferMessage] = useState('')
 
+  const loadTickets = async (silent = false) => {
+    if (!silent) setLoading(true)
+    setError('')
+    try {
+      const data = await fetchMyTickets()
+      setTickets(data || [])
+    } catch {
+      setError('Nao foi possivel carregar seus ingressos.')
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadTickets()
+  }, [])
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
   useEffect(() => {
     let active = true
-    const load = async () => {
-      try {
-        const data = await fetchMyTickets()
-        if (active) setTickets(data || [])
-      } catch (err) {
-        if (active) setError('Nao foi possivel carregar seus ingressos.')
-      } finally {
-        if (active) setLoading(false)
-      }
+    const loadMissingEventImages = async () => {
+      const eventMap = new Map()
+      tickets.forEach((ticket) => {
+        if (ticket.event?.id && !eventMap.has(ticket.event.id)) {
+          eventMap.set(ticket.event.id, ticket.event)
+        }
+      })
+
+      const idsToFetch = Array.from(eventMap.entries())
+        .filter(([eventId, event]) => !getEventImageRaw(event) && eventImagesById[eventId] === undefined)
+        .map(([eventId]) => eventId)
+
+      if (!idsToFetch.length) return
+
+      const results = await Promise.all(
+        idsToFetch.map(async (eventId) => {
+          try {
+            const fullEvent = await fetchEvent(eventId)
+            const imageRaw = getEventImageRaw(fullEvent)
+            return [eventId, imageRaw ? resolveImage(imageRaw) : '']
+          } catch {
+            return [eventId, '']
+          }
+        }),
+      )
+
+      if (!active) return
+      setEventImagesById((prev) => ({ ...prev, ...Object.fromEntries(results) }))
     }
-    load()
+
+    loadMissingEventImages()
     return () => {
       active = false
     }
-  }, [])
+  }, [tickets, eventImagesById])
 
   const grouped = useMemo(() => {
+    const isCanceled = (ticket) =>
+      ticket.orderStatus === 'CANCELED' || ticket.paymentStatus === 'FAILED'
+    const isPaid = (ticket) =>
+      ticket.orderStatus === 'PAID' || ticket.paymentStatus === 'SUCCEEDED'
+    const isPending = (ticket) => !isCanceled(ticket) && !isPaid(ticket)
+
     const map = new Map()
     tickets.forEach((ticket) => {
-      const key = ticket.event?.id || 'unknown'
+      const meta = getOrderMeta(ticket)
+      const key = meta.key
       if (!map.has(key)) {
-        map.set(key, { event: ticket.event, items: [] })
+        map.set(key, {
+          key,
+          orderId: meta.orderId,
+          orderCode: meta.orderCode,
+          orderCreatedAt: meta.orderCreatedAt,
+          event: ticket.event,
+          items: [],
+        })
       }
       map.get(key).items.push(ticket)
     })
-    return Array.from(map.values())
-  }, [tickets])
+
+    return Array.from(map.values()).map((group) => {
+      const isEnded = group.items.every((item) => {
+        const endedAt = getLastEventDate(item.event)
+        return endedAt ? endedAt.getTime() < Date.now() : false
+      })
+      const allCanceled = group.items.every(isCanceled)
+      const hasPaid = group.items.some(isPaid)
+      const hasPending = group.items.some(isPending)
+
+      let section = 'PENDING'
+      if (allCanceled) section = 'CANCELED'
+      else if (isEnded) section = 'ENDED'
+      else if (hasPaid) section = 'ACTIVE'
+      else if (hasPending) section = 'PENDING'
+
+      const eventId = group.items[0]?.event?.id
+      const imageRaw = getEventImageRaw(group.items[0]?.event)
+      const image = imageRaw ? resolveImage(imageRaw) : (eventImagesById[eventId] || '')
+
+      return {
+        ...group,
+        event: group.items[0]?.event || group.event,
+        section,
+        image,
+      }
+    })
+  }, [tickets, eventImagesById])
+
+  const tabCounts = useMemo(
+    () =>
+      grouped.reduce(
+        (acc, group) => {
+          acc[group.section] += 1
+          return acc
+        },
+        { ACTIVE: 0, PENDING: 0, CANCELED: 0, ENDED: 0 },
+      ),
+    [grouped],
+  )
+
+  const filteredGroups = useMemo(
+    () => grouped.filter((group) => group.section === tab),
+    [grouped, tab],
+  )
 
   const getPaymentLabel = (ticket) => {
     if (ticket.orderStatus === 'CANCELED') return { label: 'Cancelado', color: 'error' }
@@ -83,13 +327,15 @@ function MyTicketsPage() {
     ticket.used ? { label: 'Validado', color: 'success' } : { label: 'Nao validado', color: 'default' }
 
   const canShowQr = (ticket) =>
-    ticket.orderStatus === 'PAID' || ticket.paymentStatus === 'SUCCEEDED'
+    (ticket.orderStatus === 'PAID' || ticket.paymentStatus === 'SUCCEEDED') &&
+    !isTransferPending(ticket, nowMs)
 
   const canTransfer = (ticket) => {
     if (ticket.orderStatus === 'CANCELED') return false
     if (ticket.paymentStatus === 'FAILED') return false
     if (!canShowQr(ticket)) return false
     if (ticket.used) return false
+    if (isTransferPending(ticket, nowMs)) return false
     return true
   }
 
@@ -101,6 +347,10 @@ function MyTicketsPage() {
 
   const openQr = (ticket) => {
     setQrTicket(ticket)
+  }
+
+  const toggleOrderDetails = (key) => {
+    setExpandedOrders((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
   useEffect(() => {
@@ -129,8 +379,26 @@ function MyTicketsPage() {
     try {
       const data = await requestTicketTransfer(selectedTicket.id, transferForm)
       setTransferMessage(data?.message || 'Transferencia solicitada.')
+      setActionMessage(data?.message || 'Transferencia solicitada.')
+      await loadTickets(true)
     } catch (err) {
       setTransferMessage(err?.response?.data?.message || 'Falha ao transferir.')
+    }
+  }
+
+  const handleCancelTransfer = async (ticket) => {
+    const transferId = ticket?.transfer?.id
+    if (!transferId) return
+    setCancelingTransferId(transferId)
+    setActionMessage('')
+    try {
+      const data = await cancelTicketTransfer(transferId)
+      setActionMessage(data?.message || 'Transferencia cancelada.')
+      await loadTickets(true)
+    } catch (err) {
+      setActionMessage(err?.response?.data?.message || 'Falha ao cancelar transferencia.')
+    } finally {
+      setCancelingTransferId('')
     }
   }
 
@@ -149,111 +417,165 @@ function MyTicketsPage() {
         </Typography>
       </Box>
 
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs
+          value={tab}
+          onChange={(_, value) => setTab(value)}
+          variant="scrollable"
+          scrollButtons="auto"
+        >
+          <Tab value="ACTIVE" label={`Ativos (${tabCounts.ACTIVE})`} />
+          <Tab value="PENDING" label={`Pendentes (${tabCounts.PENDING})`} />
+          <Tab value="CANCELED" label={`Cancelados (${tabCounts.CANCELED})`} />
+          <Tab value="ENDED" label={`Encerrados (${tabCounts.ENDED})`} />
+        </Tabs>
+      </Box>
+
       {error ? <Alert severity="error">{error}</Alert> : null}
+      {actionMessage ? <Alert severity="info">{actionMessage}</Alert> : null}
 
       <Grid container spacing={2}>
-        {grouped.length ? (
-          grouped.map((group) => (
-            <Grid key={group.event?.id || Math.random()} size={{ xs: 12 }}>
-              <Card>
+        {filteredGroups.length ? (
+          filteredGroups.map((group, index) => (
+            <Grid key={group.key || group.orderId || `group-${index}`} size={{ xs: 12, md: 6, xl: 4 }}>
+              <Card
+                sx={{
+                  height: '100%',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 180,
+                    bgcolor: 'grey.200',
+                    background: group.image
+                      ? 'transparent'
+                      : 'linear-gradient(135deg, #dbeafe 0%, #e2e8f0 100%)',
+                  }}
+                >
+                  {group.image ? (
+                    <Box
+                      component="img"
+                      src={group.image}
+                      alt={group.event?.name || 'Evento'}
+                      loading="lazy"
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : null}
+                </Box>
                 <CardContent>
                   <Typography variant="h6" fontWeight={600}>
                     {group.event?.name || 'Evento'}
                   </Typography>
-                  <Typography color="text.secondary" sx={{ mb: 2 }}>
-                    {group.event?.date
-                      ? new Date(group.event.date).toLocaleString('pt-BR')
-                      : 'Sem data'}
-                  </Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Grid container spacing={2}>
-                    {group.items.map((ticket) => (
-                      <Grid key={ticket.id} size={{ xs: 12, md: 6 }}>
+                  {group.orderCode || group.orderId ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                      Pedido #{group.orderCode || group.orderId}
+                    </Typography>
+                  ) : null}
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
+                    <CalendarMonthRounded fontSize="small" color="disabled" />
+                    <Typography variant="body2" color="text.secondary">
+                      {formatEventDateRange(group.event)}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
+                    <PlaceRounded fontSize="small" color="disabled" />
+                    <Typography variant="body2" color="text.secondary">
+                      {group.event?.location || 'Local a definir'}
+                    </Typography>
+                  </Stack>
+                  <Divider sx={{ my: 2 }} />
+                  <Button
+                    variant="text"
+                    onClick={() => toggleOrderDetails(group.key)}
+                    sx={{ p: 0, minWidth: 0, alignSelf: 'flex-start' }}
+                  >
+                    {expandedOrders[group.key] ? 'Ocultar detalhes' : `Ver detalhes (${group.items.length} ingressos)`}
+                  </Button>
+                  <Collapse in={Boolean(expandedOrders[group.key])} unmountOnExit>
+                    <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                      {group.items.map((ticket) => (
                         <Card
+                          key={ticket.id}
                           variant="outlined"
-                          sx={{
-                            p: { xs: 2, md: 2.5 },
-                            borderRadius: 3,
-                            bgcolor: 'background.paper',
-                            boxShadow: '0px 16px 32px rgba(15, 23, 42, 0.16)',
-                            position: 'relative',
-                            overflow: 'hidden',
-                          }}
+                          sx={{ borderRadius: 2.5, p: 1.5, bgcolor: 'grey.50' }}
                         >
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              inset: 0,
-                              background:
-                                'radial-gradient(circle at 10% 0%, rgba(110,81,197,0.18), transparent 55%)',
-                              pointerEvents: 'none',
-                            }}
-                          />
-                          <Stack spacing={2} sx={{ position: 'relative' }}>
-                            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between">
-                              <Box>
-                                <Typography variant="h6" fontWeight={700}>
-                                  {ticket.event?.name || 'Evento'}
-                                </Typography>
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-                                  <CalendarMonthRounded fontSize="small" color="disabled" />
-                                  <Typography variant="body2" color="text.secondary">
-                                    {ticket.event?.date
-                                      ? new Date(ticket.event.date).toLocaleString('pt-BR')
-                                      : 'Sem data'}
-                                  </Typography>
-                                </Stack>
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-                                  <PlaceRounded fontSize="small" color="disabled" />
-                                  <Typography variant="body2" color="text.secondary">
-                                    {ticket.event?.location || 'Local a definir'}
-                                  </Typography>
-                                </Stack>
-                              </Box>
-
-                              <Box>
-                                <Typography fontWeight={600}>
-                                  Tipo ingresso: {ticket.type}
-                                </Typography>
-                                <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-                                  Valor: R$ {(ticket.price / 100).toFixed(2)}
-                                </Typography>
-                                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                                  <Chip
-                                    size="small"
-                                    label={getPaymentLabel(ticket).label}
-                                    color={getPaymentLabel(ticket).color}
-                                  />
-                                  <Chip
-                                    size="small"
-                                    label={getUseLabel(ticket).label}
-                                    color={getUseLabel(ticket).color}
-                                  />
-                                </Stack>
-                              </Box>
-                            </Stack>
-
+                          <Stack spacing={1.2}>
                             <Stack
                               direction={{ xs: 'column', sm: 'row' }}
-                              spacing={1.5}
-                              alignItems={{ sm: 'center' }}
-                              justifyContent="flex-end"
+                              spacing={1}
+                              justifyContent="space-between"
+                              alignItems={{ sm: 'flex-start' }}
                             >
+                              <Box>
+                                <Typography fontWeight={600}>
+                                  {ticket.type}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Valor: R$ {(ticket.price / 100).toFixed(2)}
+                                </Typography>
+                              </Box>
+                              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                <Chip
+                                  size="small"
+                                  label={getPaymentLabel(ticket).label}
+                                  color={getPaymentLabel(ticket).color}
+                                />
+                                <Chip
+                                  size="small"
+                                  label={getUseLabel(ticket).label}
+                                  color={getUseLabel(ticket).color}
+                                />
+                                {isTransferPending(ticket, nowMs) ? (
+                                  <Chip
+                                    size="small"
+                                    label={`Transferindo (${formatRemaining(getTransferRemainingMs(ticket, nowMs))})`}
+                                    color="warning"
+                                  />
+                                ) : null}
+                                {ticket.transfer?.status === 'EXPIRED' ? (
+                                  <Chip size="small" label="Transferencia expirada" color="default" />
+                                ) : null}
+                              </Stack>
+                            </Stack>
+
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                               <Button
                                 variant="contained"
+                                size="small"
                                 startIcon={<QrCode2Rounded />}
                                 onClick={() => openQr(ticket)}
                                 disabled={!canShowQr(ticket)}
-                                sx={{ minWidth: { xs: '100%', sm: 180 } }}
+                                sx={{ minWidth: { sm: 140 } }}
                               >
                                 Ver ingresso
                               </Button>
+                              {isTransferPending(ticket, nowMs) &&
+                              ticket.transfer?.fromUserId === user?.id ? (
+                                <Button
+                                  variant="outlined"
+                                  color="error"
+                                  size="small"
+                                  onClick={() => handleCancelTransfer(ticket)}
+                                  disabled={cancelingTransferId === ticket.transfer.id}
+                                  sx={{ minWidth: { sm: 180 } }}
+                                >
+                                  {cancelingTransferId === ticket.transfer.id
+                                    ? 'Cancelando...'
+                                    : 'Cancelar transferencia'}
+                                </Button>
+                              ) : null}
                               {canTransfer(ticket) ? (
                                 <Button
                                   variant="outlined"
+                                  size="small"
                                   startIcon={<SendRounded />}
                                   onClick={() => openTransfer(ticket)}
-                                  sx={{ minWidth: { xs: '100%', sm: 180 } }}
+                                  sx={{ minWidth: { sm: 140 } }}
                                 >
                                   Transferir
                                 </Button>
@@ -261,16 +583,20 @@ function MyTicketsPage() {
                             </Stack>
                           </Stack>
                         </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
+                      ))}
+                    </Stack>
+                  </Collapse>
                 </CardContent>
               </Card>
             </Grid>
           ))
         ) : (
           <Grid size={{ xs: 12 }}>
-            <Typography color="text.secondary">Voce ainda nao tem ingressos.</Typography>
+            <Typography color="text.secondary">
+              {grouped.length
+                ? 'Nao ha ingressos nesta aba.'
+                : 'Voce ainda nao tem ingressos.'}
+            </Typography>
           </Grid>
         )}
       </Grid>
