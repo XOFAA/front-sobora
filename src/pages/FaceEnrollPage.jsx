@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -16,6 +16,7 @@ import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded'
 import * as faceapi from 'face-api.js'
 import { useAuth } from '../contexts/AuthContext'
 import { enrollFace } from '../services/face'
+import { useNavigate } from 'react-router-dom'
 
 const pulse = keyframes`
   0% { transform: translate(-50%, -50%) scale(0.985); opacity: 0.55; }
@@ -29,6 +30,7 @@ const scan = keyframes`
 `
 
 function FaceEnrollPage() {
+  const navigate = useNavigate()
   const { user, reload } = useAuth()
   const videoRef = useRef(null)
   const streamRef = useRef(null)
@@ -42,6 +44,7 @@ function FaceEnrollPage() {
   const [status, setStatus] = useState({ type: '', message: '' })
   const [faceAligned, setFaceAligned] = useState(false)
   const [livenessScore, setLivenessScore] = useState(null)
+  const captureLockRef = useRef(false)
 
   const canCapture = useMemo(
     () => sessionActive && cameraReady && faceAligned && !loading,
@@ -169,6 +172,7 @@ function FaceEnrollPage() {
     setFaceAligned(false)
     setCaptureProgress(0)
     setHint('Sessao encerrada.')
+    captureLockRef.current = false
   }
 
   const captureDescriptor = async () => {
@@ -192,14 +196,16 @@ function FaceEnrollPage() {
     return Number(Math.min(1, (dx + dy) * 2.4).toFixed(3))
   }
 
-  const handleCapture = async () => {
+  const handleCapture = useCallback(async () => {
     setStatus({ type: '', message: '' })
     if (!canCapture) {
       setStatus({ type: 'error', message: 'Ajuste o rosto no quadro antes de capturar.' })
       return
     }
     try {
+      captureLockRef.current = true
       setLoading(true)
+      setHint('Capturando, nao se mexa.')
       const samples = []
       for (let i = 0; i < 8; i += 1) {
         const shot = await captureDescriptor()
@@ -231,8 +237,19 @@ function FaceEnrollPage() {
     } finally {
       setLoading(false)
       setCaptureProgress(0)
+      captureLockRef.current = false
     }
-  }
+  }, [canCapture, reload])
+
+  useEffect(() => {
+    if (!canCapture || captureLockRef.current) return
+    const timer = setTimeout(() => {
+      if (!captureLockRef.current) {
+        handleCapture()
+      }
+    }, 700)
+    return () => clearTimeout(timer)
+  }, [canCapture, handleCapture])
 
   if (completed) {
     return (
@@ -250,8 +267,11 @@ function FaceEnrollPage() {
               <Chip color="success" label={`Liveness score: ${livenessScore}`} />
             ) : null}
             <Stack direction="row" spacing={1.2}>
-              <Button variant="contained" onClick={startCameraSession}>
-                Refazer cadastro facial
+              <Button variant="contained" onClick={() => navigate('/profile')}>
+                Voltar ao perfil
+              </Button>
+              <Button variant="outlined" onClick={startCameraSession}>
+                Refazer facial
               </Button>
             </Stack>
           </Stack>
@@ -387,12 +407,18 @@ function FaceEnrollPage() {
           <Box sx={{ p: 1.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Chip
-                label={faceAligned ? 'Rosto alinhado' : 'Aguardando alinhamento'}
+                label={
+                  loading
+                    ? 'Capturando, nao se mexa'
+                    : faceAligned
+                      ? 'Rosto alinhado, captura automatica'
+                      : 'Aguardando alinhamento'
+                }
                 color={faceAligned ? 'success' : 'warning'}
               />
-              <Button variant="contained" onClick={handleCapture} disabled={!canCapture}>
-                {loading ? 'Processando...' : 'Capturar agora'}
-              </Button>
+              <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                {loading ? 'Processando...' : 'Siga as orientacoes na tela'}
+              </Typography>
             </Stack>
           </Box>
         </Box>
