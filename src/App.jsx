@@ -9,6 +9,7 @@ import CheckoutPage from './pages/CheckoutPage'
 import MyTicketsPage from './pages/MyTicketsPage'
 import TransferAcceptPage from './pages/TransferAcceptPage'
 import FaceEnrollPage from './pages/FaceEnrollPage'
+import ProfilePage from './pages/ProfilePage'
 import { useAuth } from './contexts/AuthContext'
 
 function ProtectedRoute({ children }) {
@@ -37,6 +38,11 @@ function App() {
         <Route path="/face-enroll" element={
           <ProtectedRoute>
             <FaceEnrollPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         } />
         <Route path="/login" element={<AuthPage />} />

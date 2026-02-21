@@ -19,3 +19,8 @@ export async function fetchMe() {
   const { data } = await api.get('/auth/me')
   return data
 }
+
+export async function updateMe(payload) {
+  const { data } = await api.patch('/users/me', payload)
+  return data
+}

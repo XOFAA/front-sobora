@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { fetchMe, loginWithCode, requestLoginCode, registerUser } from '../services/auth'
+import { fetchMe, loginWithCode, requestLoginCode, registerUser, updateMe } from '../services/auth'
 
 const AuthContext = createContext(null)
 
@@ -44,13 +44,19 @@ export function AuthProvider({ children }) {
     return registerUser(payload)
   }
 
+  const updateProfile = async (payload) => {
+    const data = await updateMe(payload)
+    setUser((prev) => ({ ...(prev || {}), ...data }))
+    return data
+  }
+
   const logout = () => {
     localStorage.removeItem('sobora_token')
     setUser(null)
   }
 
   const value = useMemo(
-    () => ({ user, loading, login, requestCode, register, logout, reload: loadMe }),
+    () => ({ user, loading, login, requestCode, register, updateProfile, logout, reload: loadMe }),
     [user, loading],
   )
 

@@ -20,6 +20,7 @@ import TicketRounded from '@mui/icons-material/ConfirmationNumberRounded'
 import LoginRounded from '@mui/icons-material/LoginRounded'
 import MenuRounded from '@mui/icons-material/MenuRounded'
 import LogoutRounded from '@mui/icons-material/LogoutRounded'
+import AccountCircleRounded from '@mui/icons-material/AccountCircleRounded'
 import { useState } from 'react'
 
 function MainLayout() {
@@ -71,6 +72,11 @@ function MainLayout() {
               Meus ingressos
             </Button>
             {user ? (
+              <Button sx={{ color: '#fff' }} startIcon={<AccountCircleRounded />} onClick={() => navigate('/profile')}>
+                Meu cadastro
+              </Button>
+            ) : null}
+            {user ? (
               <Button variant="outlined" onClick={logout} sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.7)' }}>
                 Sair
               </Button>
@@ -113,6 +119,14 @@ function MainLayout() {
             </ListItemIcon>
             <ListItemText primary="Meus ingressos" />
           </ListItemButton>
+          {user ? (
+            <ListItemButton onClick={() => handleNavigate('/profile')}>
+              <ListItemIcon>
+                <AccountCircleRounded />
+              </ListItemIcon>
+              <ListItemText primary="Meu cadastro" />
+            </ListItemButton>
+          ) : null}
           {user ? (
             <ListItemButton onClick={handleLogout}>
               <ListItemIcon>
