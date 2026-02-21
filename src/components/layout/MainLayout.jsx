@@ -22,6 +22,13 @@ import MenuRounded from '@mui/icons-material/MenuRounded'
 import LogoutRounded from '@mui/icons-material/LogoutRounded'
 import AccountCircleRounded from '@mui/icons-material/AccountCircleRounded'
 import { useState } from 'react'
+import { keyframes } from '@emotion/react'
+
+const movingGradient = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`
 
 function MainLayout() {
   const { user, logout } = useAuth()
@@ -44,7 +51,9 @@ function MainLayout() {
         position="sticky"
         elevation={0}
         sx={{
-          background: 'radial-gradient(circle, #6E51C5 7%, #42386C 30%)',
+          background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
+          backgroundSize: '260% 260%',
+          animation: `${movingGradient} 9s ease-in-out infinite`,
           color: '#fff',
         }}
       >
@@ -85,7 +94,17 @@ function MainLayout() {
                 variant="contained"
                 startIcon={<LoginRounded />}
                 onClick={() => navigate('/login')}
-                sx={{ bgcolor: '#fff', color: '#42386C', '&:hover': { bgcolor: '#efeafc' } }}
+                disableElevation
+                sx={{
+                  backgroundColor: '#fff !important',
+                  backgroundImage: 'none !important',
+                  color: '#42386C !important',
+                  '& .MuiButton-startIcon': { color: '#42386C !important' },
+                  '&:hover': {
+                    backgroundColor: '#efeafc !important',
+                    backgroundImage: 'none !important',
+                  },
+                }}
               >
                 Entrar
               </Button>
