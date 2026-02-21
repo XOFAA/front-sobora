@@ -14,28 +14,31 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import OtpInput from '../components/auth/OtpInput'
 
-const RESEND_SECONDS = 60
+const RESEND_SECONDS = 30
 
 function LoginCodePage() {
   const { login, requestCode } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [identifier, setIdentifier] = useState('')
+  const [identifier] = useState(() => {
+    return location.state?.identifier || sessionStorage.getItem('login_identifier') || ''
+  })
+  const [identifierLabel] = useState(() => {
+    return location.state?.identifierLabel || sessionStorage.getItem('login_identifier_label') || ''
+  })
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [resendLeft, setResendLeft] = useState(RESEND_SECONDS)
 
   useEffect(() => {
-    const fromState = location.state?.identifier
-    const fromStorage = sessionStorage.getItem('login_identifier')
-    if (fromState) {
-      setIdentifier(fromState)
-      sessionStorage.setItem('login_identifier', fromState)
-    } else if (fromStorage) {
-      setIdentifier(fromStorage)
+    if (location.state?.identifier) {
+      sessionStorage.setItem('login_identifier', location.state.identifier)
     }
-  }, [location.state])
+    if (location.state?.identifierLabel) {
+      sessionStorage.setItem('login_identifier_label', location.state.identifierLabel)
+    }
+  }, [location.state?.identifier, location.state?.identifierLabel])
 
   useEffect(() => {
     if (resendLeft <= 0) return undefined
@@ -79,15 +82,16 @@ function LoginCodePage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
+      <Card sx={{ borderRadius: 4, boxShadow: '0 16px 44px rgba(16,24,40,0.12)' }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+          <Stack spacing={2.5}>
             <Box>
-              <Typography variant="h5" fontWeight={700} gutterBottom>
-                Digite o codigo
+              <Typography variant="h4" fontWeight={800} gutterBottom textAlign="center">
+                Validar <Box component="span" sx={{ color: '#5b3fc4' }}>Codigo</Box>
               </Typography>
-              <Typography color="text.secondary">
-                Enviamos um codigo de 6 digitos para {identifier || 'seu contato'}.
+              <Typography color="text.secondary" textAlign="center">
+                Acabamos de enviar um codigo de validacao para <b>{identifierLabel || identifier || 'seu contato'}</b>.
+                {' '}Por favor, digite o codigo abaixo:
               </Typography>
             </Box>
 
@@ -96,11 +100,15 @@ function LoginCodePage() {
             {error ? <Alert severity="error">{error}</Alert> : null}
             {success ? <Alert severity="success">{success}</Alert> : null}
 
-            <Button variant="contained" onClick={handleLogin}>
-              Entrar
+            <Button
+              variant="contained"
+              onClick={handleLogin}
+              sx={{ py: 1.1, fontSize: 26, fontWeight: 800, textTransform: 'none' }}
+            >
+              Validar Codigo
             </Button>
             <Divider />
-            <Stack direction="row" spacing={1} justifyContent="space-between">
+            <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
               <Button variant="text" onClick={() => navigate('/login')}>
                 Editar contato
               </Button>
@@ -108,6 +116,9 @@ function LoginCodePage() {
                 {resendLeft > 0 ? `Reenviar em ${resendLeft}s` : 'Reenviar codigo'}
               </Button>
             </Stack>
+            <Typography textAlign="center" color="text.secondary" sx={{ pt: 1 }}>
+              não tem mais acesso ao e-mail?
+            </Typography>
           </Stack>
         </CardContent>
       </Card>

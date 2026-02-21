@@ -36,6 +36,23 @@ function OtpInput({ length = 6, value, onChange }) {
     }
   }
 
+  const handlePaste = (index, event) => {
+    event.preventDefault()
+    const pasted = event.clipboardData?.getData('text') || ''
+    const clean = pasted.replace(/\D/g, '')
+    if (!clean) return
+
+    const next = digits.slice()
+    for (let i = 0; i < clean.length && index + i < length; i += 1) {
+      next[index + i] = clean[i]
+    }
+    onChange(next.join(''))
+
+    const focusIndex = Math.min(index + clean.length, length - 1)
+    inputsRef.current[focusIndex]?.focus()
+    inputsRef.current[focusIndex]?.select()
+  }
+
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${length}, minmax(0, 1fr))`, gap: 1.5 }}>
       {digits.map((digit, index) => (
@@ -47,6 +64,7 @@ function OtpInput({ length = 6, value, onChange }) {
           value={digit}
           onChange={(event) => handleChange(index, event.target.value)}
           onKeyDown={(event) => handleKeyDown(index, event)}
+          onPaste={(event) => handlePaste(index, event)}
           inputProps={{
             inputMode: 'numeric',
             pattern: '[0-9]*',
