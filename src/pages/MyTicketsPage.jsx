@@ -41,6 +41,8 @@ import QRCode from 'qrcode'
 import { useNavigate } from 'react-router-dom'
 import PhoneWithCountryField from '../components/inputs/PhoneWithCountryField'
 import { COUNTRY_OPTIONS, normalizePhoneNumber, validatePhoneLocalLength } from '../utils/contact'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
 
@@ -493,6 +495,39 @@ function MyTicketsPage() {
     return { label: 'Pendente', color: 'warning' }
   }
 
+  const handleDownloadTransfersReport = () => {
+    if (!transfersSent.length) return
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+    const title = 'Relatorio de transferencias'
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.text(title, 40, 40)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text(`Gerado em: ${formatDateTime(new Date())}`, 40, 58)
+
+    const rows = transfersSent.map((transfer) => ([
+      transfer.event?.name || 'Evento',
+      transfer.ticketType?.name || 'Ingresso',
+      transfer.toUser?.name || transfer.toEmail || transfer.toPhone || 'Nao informado',
+      transfer.toPhone || '-',
+      getTransferStatusLabel(transfer.status).label,
+      formatDateTime(transfer.createdAt),
+      transfer.status === 'COMPLETED' ? formatDateTime(transfer.updatedAt) : '-',
+    ]))
+
+    autoTable(doc, {
+      startY: 80,
+      head: [['Evento', 'Tipo', 'Destinatario', 'Telefone', 'Status', 'Enviado em', 'Aceito em']],
+      body: rows,
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [109, 40, 217] },
+    })
+
+    const fileDate = new Date().toISOString().slice(0, 10)
+    doc.save(`transferencias-${fileDate}.pdf`)
+  }
+
   const handleCancelTransfer = async (ticket) => {
     const transferId = ticket?.transfer?.id
     if (!transferId) return
@@ -642,7 +677,7 @@ function MyTicketsPage() {
                         Pagamento: {order.paymentStatus || 'Nao informado'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Total: R$ {(order.total / 100).toFixed(2)}
+                        Total: {(order.total ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Ingressos: {order.ticketsCount}
@@ -660,6 +695,18 @@ function MyTicketsPage() {
         </Grid>
       ) : tab === 'TRANSFERRED' ? (
         <Grid container spacing={2}>
+          <Grid size={{ xs: 12 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between" alignItems={{ sm: 'center' }}>
+              <Typography fontWeight={600}>Transferencias enviadas</Typography>
+              <Button
+                variant="outlined"
+                onClick={handleDownloadTransfersReport}
+                disabled={!transfersSent.length}
+              >
+                Baixar relatorio (PDF)
+              </Button>
+            </Stack>
+          </Grid>
           {transfersSent.length ? (
             transfersSent.map((transfer) => (
               <Grid key={transfer.id} size={{ xs: 12, md: 6 }}>
@@ -827,9 +874,9 @@ function MyTicketsPage() {
                                 <Typography fontWeight={600}>
                                   {ticket.type}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                  Valor: R$aaa {(ticket.price / 100).toFixed(2)}
-                                </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    Valor: {(ticket.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                  </Typography>
                               </Box>
                               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                                 <Chip
@@ -1015,7 +1062,4 @@ function MyTicketsPage() {
 }
 
 export default MyTicketsPage
-
-
-
 

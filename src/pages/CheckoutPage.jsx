@@ -24,7 +24,7 @@ import { useAuth } from '../contexts/AuthContext'
 const STEPS = ['Ingressos', 'Dados', 'Pagamento', 'Revisao']
 
 function formatPrice(value) {
-  return `R$ ${(value / 100).toFixed(2)}`
+  return (value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 function CheckoutPage() {

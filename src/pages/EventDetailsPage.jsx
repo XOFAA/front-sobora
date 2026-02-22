@@ -120,7 +120,8 @@ function EventDetailsPage() {
     return Math.min(...prices)
   }, [ticketTypes])
 
-  const formatPrice = (value) => `R$ ${(value / 100).toFixed(2)}`
+  const formatPrice = (value) =>
+    (value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   const descriptionBlocks = useMemo(
     () => renderDescriptionWithEmbeds(event?.description || ''),
