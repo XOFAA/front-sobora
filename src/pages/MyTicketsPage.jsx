@@ -39,6 +39,8 @@ import { fetchEvent } from '../services/events'
 import { fetchMyOrders } from '../services/orders'
 import QRCode from 'qrcode'
 import { useNavigate } from 'react-router-dom'
+import PhoneWithCountryField from '../components/inputs/PhoneWithCountryField'
+import { COUNTRY_OPTIONS, normalizePhoneNumber, validatePhoneLocalLength } from '../utils/contact'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
 
@@ -198,9 +200,8 @@ function MyTicketsPage() {
   const [qrLoading, setQrLoading] = useState(false)
   const [cancelingTransferId, setCancelingTransferId] = useState('')
   const [transferForm, setTransferForm] = useState({
-    toEmail: '',
-    toPhone: '',
-    toCpf: '',
+    phone: '',
+    countryIso2: 'BR',
     message: '',
   })
   const [transferMessage, setTransferMessage] = useState('')
@@ -388,7 +389,7 @@ function MyTicketsPage() {
 
   const openTransfer = (ticket) => {
     setSelectedTicket(ticket)
-    setTransferForm({ toEmail: '', toPhone: '', toCpf: '', message: '' })
+    setTransferForm({ phone: '', countryIso2: 'BR', message: '' })
     setTransferMessage('')
   }
 
@@ -425,7 +426,16 @@ function MyTicketsPage() {
     setTransferMessage('')
     setTransferCode('')
     try {
-      const data = await requestTicketTransfer(selectedTicket.id, transferForm)
+      if (!validatePhoneLocalLength(transferForm.phone, transferForm.countryIso2)) {
+        const country = COUNTRY_OPTIONS.find((item) => item.iso2 === transferForm.countryIso2) || COUNTRY_OPTIONS[0]
+        setTransferMessage(`Telefone invalido para ${country.name}.`)
+        return
+      }
+      const payload = {
+        toPhone: normalizePhoneNumber(transferForm.phone, transferForm.countryIso2),
+        message: transferForm.message,
+      }
+      const data = await requestTicketTransfer(selectedTicket.id, payload)
       setTransferMessage(data?.message || 'Transferencia solicitada.')
       setActionMessage(data?.message || 'Transferencia solicitada.')
       setTransferCode(data?.transfer?.code || data?.code || '')
@@ -933,20 +943,12 @@ function MyTicketsPage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            <TextField
-              label="CPF do destinatario"
-              value={transferForm.toCpf}
-              onChange={(e) => setTransferForm((prev) => ({ ...prev, toCpf: e.target.value }))}
-            />
-            <TextField
-              label="Email do destinatario"
-              value={transferForm.toEmail}
-              onChange={(e) => setTransferForm((prev) => ({ ...prev, toEmail: e.target.value }))}
-            />
-            <TextField
+            <PhoneWithCountryField
+              countryIso2={transferForm.countryIso2}
+              phone={transferForm.phone}
+              onCountryChange={(value) => setTransferForm((prev) => ({ ...prev, countryIso2: value }))}
+              onPhoneChange={(value) => setTransferForm((prev) => ({ ...prev, phone: value }))}
               label="Telefone do destinatario"
-              value={transferForm.toPhone}
-              onChange={(e) => setTransferForm((prev) => ({ ...prev, toPhone: e.target.value }))}
             />
             <TextField
               label="Mensagem (opcional)"
