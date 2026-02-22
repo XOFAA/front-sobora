@@ -5,6 +5,11 @@ export async function fetchMyTickets() {
   return data
 }
 
+export async function fetchTransfersSent() {
+  const { data } = await api.get('/tickets/transfers/sent')
+  return data
+}
+
 export async function requestTicketTransfer(ticketId, payload) {
   const { data } = await api.post(`/tickets/${ticketId}/transfer`, payload)
   return data

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -26,15 +26,19 @@ import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded'
 import SendRounded from '@mui/icons-material/SendRounded'
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded'
 import VpnKeyRounded from '@mui/icons-material/VpnKeyRounded'
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded'
 import { useAuth } from '../contexts/AuthContext'
 import {
   acceptTicketTransferByCode,
   cancelTicketTransfer,
+  fetchTransfersSent,
   fetchMyTickets,
   requestTicketTransfer,
 } from '../services/tickets'
 import { fetchEvent } from '../services/events'
+import { fetchMyOrders } from '../services/orders'
 import QRCode from 'qrcode'
+import { useNavigate } from 'react-router-dom'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
 
@@ -169,10 +173,19 @@ const formatRemaining = (ms) => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
+const formatDateTime = (value) => {
+  if (!value) return 'Sem data'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? 'Sem data' : date.toLocaleString('pt-BR')
+}
+
 function MyTicketsPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [tab, setTab] = useState('ACTIVE')
   const [tickets, setTickets] = useState([])
+  const [transfersSent, setTransfersSent] = useState([])
+  const [orders, setOrders] = useState([])
   const [eventImagesById, setEventImagesById] = useState({})
   const [expandedOrders, setExpandedOrders] = useState({})
   const [nowMs, setNowMs] = useState(Date.now())
@@ -201,13 +214,20 @@ function MyTicketsPage() {
   })
   const [acceptMessage, setAcceptMessage] = useState('')
   const [acceptLoading, setAcceptLoading] = useState(false)
+  const [acceptSuccess, setAcceptSuccess] = useState(false)
 
   const loadTickets = async (silent = false) => {
     if (!silent) setLoading(true)
     setError('')
     try {
-      const data = await fetchMyTickets()
-      setTickets(data || [])
+      const [ticketsData, transfersData, ordersData] = await Promise.all([
+        fetchMyTickets(),
+        fetchTransfersSent(),
+        fetchMyOrders(),
+      ])
+      setTickets(ticketsData || [])
+      setTransfersSent(transfersData || [])
+      setOrders(ordersData || [])
     } catch {
       setError('Nao foi possivel carregar seus ingressos.')
     } finally {
@@ -325,17 +345,16 @@ function MyTicketsPage() {
     })
   }, [tickets, eventImagesById])
 
-  const tabCounts = useMemo(
-    () =>
-      grouped.reduce(
-        (acc, group) => {
-          acc[group.section] += 1
-          return acc
-        },
-        { ACTIVE: 0, PENDING: 0, CANCELED: 0, ENDED: 0 },
-      ),
-    [grouped],
-  )
+  const tabCounts = useMemo(() => {
+    const base = grouped.reduce(
+      (acc, group) => {
+        acc[group.section] += 1
+        return acc
+      },
+      { ACTIVE: 0, PENDING: 0, CANCELED: 0, ENDED: 0 },
+    )
+    return { ...base, TRANSFERRED: transfersSent.length, ORDERS: orders.length }
+  }, [grouped, transfersSent, orders])
 
   const filteredGroups = useMemo(
     () => grouped.filter((group) => group.section === tab),
@@ -418,27 +437,29 @@ function MyTicketsPage() {
 
   const handleAcceptTransfer = async () => {
     setAcceptMessage('')
+    setAcceptSuccess(false)
     if (!acceptForm.code) {
       setAcceptMessage('Informe o codigo recebido.')
-      return
-    }
-    if (!acceptForm.toCpf || !acceptForm.toEmail || !acceptForm.toPhone) {
-      setAcceptMessage('Complete CPF, e-mail e telefone para resgatar o ingresso.')
       return
     }
     setAcceptLoading(true)
     try {
       const payload = {
-        toCpf: acceptForm.toCpf,
-        toEmail: acceptForm.toEmail,
-        toPhone: acceptForm.toPhone,
-        name: acceptForm.name,
+        toCpf: user?.cpf,
+        toEmail: user?.email,
+        toPhone: user?.phone,
+        name: user?.name,
       }
       const data = await acceptTicketTransferByCode(acceptForm.code, payload)
       setAcceptMessage(data?.message || 'Transferencia aceita com sucesso.')
+      setAcceptSuccess(true)
       setActionMessage(data?.message || 'Transferencia aceita com sucesso.')
       setAcceptForm((prev) => ({ ...prev, code: '' }))
       await loadTickets(true)
+      setTab('ACTIVE')
+      setTimeout(() => {
+        navigate('/tickets')
+      }, 800)
     } catch (err) {
       setAcceptMessage(err?.response?.data?.message || 'Falha ao aceitar transferencia.')
     } finally {
@@ -453,6 +474,13 @@ function MyTicketsPage() {
     } catch {
       setActionMessage('Nao foi possivel copiar o codigo.')
     }
+  }
+
+  const getTransferStatusLabel = (status) => {
+    if (status === 'COMPLETED') return { label: 'Concluida', color: 'success' }
+    if (status === 'CANCELED') return { label: 'Cancelada', color: 'default' }
+    if (status === 'EXPIRED') return { label: 'Expirada', color: 'default' }
+    return { label: 'Pendente', color: 'warning' }
   }
 
   const handleCancelTransfer = async (ticket) => {
@@ -476,7 +504,7 @@ function MyTicketsPage() {
   }
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={3} sx={{ pb: 4 }}>
       <Box>
         <Typography variant="h4" fontWeight={700}>
           Meus ingressos
@@ -488,32 +516,47 @@ function MyTicketsPage() {
 
       <Card
         sx={{
-          borderRadius: 3,
+          borderRadius: '10px',
           color: '#fff',
+          position: 'relative',
+          overflow: 'hidden',
           background: 'linear-gradient(135deg, #6b4cd6 0%, #5640b3 100%)',
-          boxShadow: '0 16px 28px rgba(67, 56, 103, 0.25)',
+          boxShadow: '0 18px 32px rgba(67, 56, 103, 0.28)',
         }}
       >
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(600px 220px at 10% 0%, rgba(255,255,255,0.22), transparent 60%), radial-gradient(700px 260px at 90% 100%, rgba(255,255,255,0.12), transparent 60%)',
+            opacity: 0.9,
+          }}
+        />
         <CardContent>
-          <Stack spacing={2}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+          <Stack spacing={2.5} sx={{ position: 'relative', zIndex: 1 }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems={{ md: 'center' }}>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="h6" fontWeight={700}>
                   Resgatar ingresso
                 </Typography>
                 <Typography sx={{ color: 'rgba(255,255,255,0.8)', mt: 0.5 }}>
-                  Digite o código enviado pelo remetente para receber o ingresso.
+                  Digite o código de 6 dígitos enviado pelo remetente para receber o ingresso.
                 </Typography>
               </Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="stretch">
                 <TextField
                   size="small"
                   label="Código"
                   value={acceptForm.code}
                   onChange={(e) => setAcceptForm((prev) => ({ ...prev, code: e.target.value }))}
-                  sx={{ bgcolor: '#fff', borderRadius: 2, minWidth: { xs: '100%', sm: 200 } }}
+                  sx={{
+                    bgcolor: '#fff',
+                    borderRadius: 2,
+                    minWidth: { xs: '100%', sm: 220 },
+                  }}
                   InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-                  inputProps={{ maxLength: 6 }}
+                  inputProps={{ maxLength: 6, style: { letterSpacing: 6, fontWeight: 600 } }}
                 />
                 <Button
                   variant="contained"
@@ -533,47 +576,16 @@ function MyTicketsPage() {
               </Stack>
             </Stack>
 
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-              <TextField
-                size="small"
-                label="CPF"
-                value={acceptForm.toCpf}
-                onChange={(e) => setAcceptForm((prev) => ({ ...prev, toCpf: e.target.value }))}
-                sx={{ bgcolor: '#fff', borderRadius: 2, flex: 1 }}
-                InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-              />
-              <TextField
-                size="small"
-                label="E-mail"
-                value={acceptForm.toEmail}
-                onChange={(e) => setAcceptForm((prev) => ({ ...prev, toEmail: e.target.value }))}
-                sx={{ bgcolor: '#fff', borderRadius: 2, flex: 1 }}
-                InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-              />
-              <TextField
-                size="small"
-                label="Telefone"
-                value={acceptForm.toPhone}
-                onChange={(e) => setAcceptForm((prev) => ({ ...prev, toPhone: e.target.value }))}
-                sx={{ bgcolor: '#fff', borderRadius: 2, flex: 1 }}
-                InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-              />
-            </Stack>
-            <TextField
-              size="small"
-              label="Nome completo"
-              value={acceptForm.name}
-              onChange={(e) => setAcceptForm((prev) => ({ ...prev, name: e.target.value }))}
-              sx={{ bgcolor: '#fff', borderRadius: 2 }}
-              InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
-            />
-
-            {acceptMessage ? <Alert severity="info">{acceptMessage}</Alert> : null}
+            {acceptMessage ? (
+              <Alert severity={acceptSuccess ? 'success' : 'info'} icon={acceptSuccess ? <CheckCircleRounded /> : undefined}>
+                {acceptMessage}
+              </Alert>
+            ) : null}
           </Stack>
         </CardContent>
       </Card>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', pb: 2 }}>
         <Tabs
           value={tab}
           onChange={(_, value) => setTab(value)}
@@ -584,20 +596,154 @@ function MyTicketsPage() {
           <Tab value="PENDING" label={`Pendentes (${tabCounts.PENDING})`} />
           <Tab value="CANCELED" label={`Cancelados (${tabCounts.CANCELED})`} />
           <Tab value="ENDED" label={`Encerrados (${tabCounts.ENDED})`} />
+          <Tab value="TRANSFERRED" label={`Transferidos (${tabCounts.TRANSFERRED})`} />
+          <Tab value="ORDERS" label={`Pedidos (${tabCounts.ORDERS})`} />
         </Tabs>
       </Box>
 
       {error ? <Alert severity="error">{error}</Alert> : null}
       {actionMessage ? <Alert severity="info">{actionMessage}</Alert> : null}
 
-      <Grid container spacing={2}>
+      {tab === 'ORDERS' ? (
+        <Grid container spacing={2}>
+          {orders.length ? (
+            orders.map((order) => (
+              <Grid key={order.id} size={{ xs: 12, md: 6 }}>
+                <Card sx={{ borderRadius: '10px', border: '1px solid', borderColor: 'divider' }}>
+                  <CardContent>
+                    <Stack spacing={1.5}>
+                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                        <Typography fontWeight={700}>
+                          {order.event?.name || 'Pedido'}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={order.status === 'PAID' ? 'Pago' : order.status}
+                          color={order.status === 'PAID' ? 'success' : 'default'}
+                        />
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">
+                        Pedido #{order.id}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Data da compra: {formatDateTime(order.createdAt)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pagamento: {order.paymentStatus || 'Nao informado'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total: R$ {(order.total / 100).toFixed(2)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Ingressos: {order.ticketsCount}
+                      </Typography>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          ) : (
+            <Grid size={{ xs: 12 }}>
+              <Typography color="text.secondary">Voce ainda nao tem pedidos.</Typography>
+            </Grid>
+          )}
+        </Grid>
+      ) : tab === 'TRANSFERRED' ? (
+        <Grid container spacing={2}>
+          {transfersSent.length ? (
+            transfersSent.map((transfer) => (
+              <Grid key={transfer.id} size={{ xs: 12, md: 6 }}>
+                <Card
+                  sx={{
+                    borderRadius: '10px',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      px: 2,
+                      py: 1.5,
+                      background:
+                        'linear-gradient(120deg, rgba(109,40,217,0.16), rgba(167,139,250,0.18))',
+                    }}
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                      <Typography fontWeight={700}>
+                        {transfer.event?.name || 'Evento'}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={getTransferStatusLabel(transfer.status).label}
+                        color={getTransferStatusLabel(transfer.status).color}
+                      />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      {transfer.event?.date ? formatDateTime(transfer.event.date) : 'Data a definir'}
+                    </Typography>
+                  </Box>
+                  <CardContent>
+                    <Stack spacing={1.5}>
+                      <Typography variant="body2" color="text.secondary">
+                        Tipo: {transfer.ticketType?.name || 'Ingresso'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Destinatario: {transfer.toUser?.name || transfer.toEmail || transfer.toPhone || 'Nao informado'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Enviado em: {formatDateTime(transfer.createdAt)}
+                      </Typography>
+                      {transfer.status === 'COMPLETED' ? (
+                        <Typography variant="body2" color="text.secondary">
+                          Aceito em: {formatDateTime(transfer.updatedAt)}
+                        </Typography>
+                      ) : null}
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                        {transfer.toEmail ? (
+                          <Chip size="small" label={transfer.toEmail} />
+                        ) : null}
+                        {transfer.toPhone ? (
+                          <Chip size="small" label={transfer.toPhone} />
+                        ) : null}
+                        {transfer.toCpf ? (
+                          <Chip size="small" label={`CPF: ${transfer.toCpf}`} />
+                        ) : null}
+                      </Stack>
+                      {transfer.status === 'PENDING' && transfer.code ? (
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="caption" color="text.secondary">
+                            Codigo: {transfer.code}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleCopyCode(transfer.code)}
+                            aria-label="Copiar codigo"
+                          >
+                            <ContentCopyRounded fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      ) : null}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          ) : (
+            <Grid size={{ xs: 12 }}>
+              <Typography color="text.secondary">Voce ainda nao transferiu ingressos.</Typography>
+            </Grid>
+          )}
+        </Grid>
+      ) : (
+        <Grid container spacing={2}>
         {filteredGroups.length ? (
           filteredGroups.map((group, index) => (
             <Grid key={group.key || group.orderId || `group-${index}`} size={{ xs: 12, md: 6, xl: 4 }}>
               <Card
                 sx={{
                   height: '100%',
-                  borderRadius: "10px",
+                  borderRadius: '10px',
                   overflow: 'hidden',
                   border: '1px solid',
                   borderColor: 'divider',
@@ -658,7 +804,7 @@ function MyTicketsPage() {
                         <Card
                           key={ticket.id}
                           variant="outlined"
-                          sx={{ borderRadius: "10px", p: 1.5, bgcolor: 'grey.50' }}
+                          sx={{ borderRadius: '10px', p: 1.5, bgcolor: 'grey.50' }}
                         >
                           <Stack spacing={1.2}>
                             <Stack
@@ -773,6 +919,7 @@ function MyTicketsPage() {
           </Grid>
         )}
       </Grid>
+      )}
 
       <Dialog open={Boolean(selectedTicket)} onClose={() => setSelectedTicket(null)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pr: 6 }}>
@@ -866,3 +1013,7 @@ function MyTicketsPage() {
 }
 
 export default MyTicketsPage
+
+
+
+

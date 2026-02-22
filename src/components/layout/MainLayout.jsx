@@ -23,6 +23,7 @@ import LogoutRounded from '@mui/icons-material/LogoutRounded'
 import AccountCircleRounded from '@mui/icons-material/AccountCircleRounded'
 import { useState } from 'react'
 import { keyframes } from '@emotion/react'
+import Footer from './Footer'
 
 const movingGradient = keyframes`
   0% { background-position: 0% 50%; }
@@ -46,7 +47,7 @@ function MainLayout() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <AppBar
         position="sticky"
         elevation={0}
@@ -163,7 +164,7 @@ function MainLayout() {
           )}
         </List>
       </Drawer>
-      <Container maxWidth="lg" sx={{ pt: 4, pb: 0 }}>
+      <Container maxWidth="lg" sx={{ pt: 4, pb: 0, flex: 1 }}>
         {user && user?.faceEnrollment?.status !== 'VERIFIED' ? (
           <Alert
             severity="info"
@@ -179,6 +180,9 @@ function MainLayout() {
         ) : null}
         <Outlet />
       </Container>
+      <Box sx={{ mt: 'auto' }}>
+        <Footer />
+      </Box>
     </Box>
   )
 }

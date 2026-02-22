@@ -8,7 +8,6 @@ import AddRounded from '@mui/icons-material/AddRounded'
 import { keyframes } from '@emotion/react'
 import EventSlider from '../components/event/EventSlider'
 import FaqSection from '../components/faq/FaqSection'
-import Footer from '../components/layout/Footer'
 import { fetchEvents } from '../services/events'
 
 const HOW_IT_WORKS = [
@@ -222,7 +221,6 @@ function HomePage() {
           Criar meu evento
         </Button>
       </Box>
-      <Footer />
     </Stack>
   )
 }

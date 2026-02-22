@@ -53,7 +53,7 @@ const theme = createTheme({
       focus: alpha(BRAND, 0.16),
     },
   },
-  shape: { borderRadius: 14 },
+  shape: { borderRadius: '10px' },
   typography: {
     fontFamily: '"Space Grotesk", "Inter", system-ui, sans-serif',
     h4: { fontWeight: 700, letterSpacing: -0.5 },
@@ -107,7 +107,7 @@ const theme = createTheme({
       defaultProps: { disableElevation: true },
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: '10px',
           paddingInline: 16,
           paddingBlock: 10,
         },
@@ -142,7 +142,7 @@ const theme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: '10px',
           backgroundColor: SURFACE_2,
           '& .MuiOutlinedInput-notchedOutline': {
             borderColor: alpha('#0F172A', 0.14),
@@ -164,7 +164,7 @@ const theme = createTheme({
     MuiListItemButton: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: '10px',
           '&.Mui-selected': {
             backgroundColor: alpha(BRAND, 0.12),
           },

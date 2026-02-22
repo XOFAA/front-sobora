@@ -1,4 +1,4 @@
-﻿import { Box, Link, Stack, Typography } from '@mui/material'
+﻿import { Box, Container, Link, Stack, Typography } from '@mui/material'
 import { keyframes } from '@emotion/react'
 import { useNavigate } from 'react-router-dom'
 
@@ -61,55 +61,56 @@ function Footer() {
         },
       }}
     >
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={{ xs: 3, md: 6 }}
-        justifyContent="space-between"
-        sx={{ position: 'relative', zIndex: 1 }}
-      >
-        <Box sx={{ maxWidth: 360 }}>
-          <Box
-            component="img"
-            src="/assets/sobora-indeias.svg"
-            alt="Sobora powered by Indeias"
-            sx={{ height: 60, width: 'auto', mb: 1 }}
-          />
-          <Typography sx={{ color: 'rgba(255,255,255,0.78)' }}>
-            Marketplace de eventos para descobrir experiências, comprar ingressos e viver momentos que ficam.
-          </Typography>
-        </Box>
-
-        {FOOTER_LINKS.map((group) => (
-          <Box key={group.title}>
-            <Typography fontWeight={700} sx={{ mb: 1 }}>
-              {group.title}
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={{ xs: 3, md: 6 }}
+          justifyContent="space-between"
+        >
+          <Box sx={{ maxWidth: 360 }}>
+            <Box
+              component="img"
+              src="/assets/sobora-indeias.svg"
+              alt="Sobora powered by Indeias"
+              sx={{ height: 60, width: 'auto', mb: 1 }}
+            />
+            <Typography sx={{ color: 'rgba(255,255,255,0.78)' }}>
+              Marketplace de eventos para descobrir experiências, comprar ingressos e viver momentos que ficam.
             </Typography>
-            <Stack spacing={0.75}>
-              {group.items.map((item) => (
-                <Link
-                  key={item.label}
-                  component="button"
-                  onClick={() => navigate(item.path)}
-                  underline="none"
-                  sx={{
-                    textAlign: 'left',
-                    color: 'rgba(255,255,255,0.75)',
-                    '&:hover': { color: '#fff' },
-                  }}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </Stack>
           </Box>
-        ))}
-      </Stack>
-      <Typography
-        variant="caption"
-        sx={{ mt: 3, display: 'block', color: 'rgba(255,255,255,0.6)', position: 'relative', zIndex: 1 }}
-      >
-        © {new Date().getFullYear()} Sobora. Todos os direitos reservados.
-      </Typography>
+
+          {FOOTER_LINKS.map((group) => (
+            <Box key={group.title}>
+              <Typography fontWeight={700} sx={{ mb: 1 }}>
+                {group.title}
+              </Typography>
+              <Stack spacing={0.75}>
+                {group.items.map((item) => (
+                  <Link
+                    key={item.label}
+                    component="button"
+                    onClick={() => navigate(item.path)}
+                    underline="none"
+                    sx={{
+                      textAlign: 'left',
+                      color: 'rgba(255,255,255,0.75)',
+                      '&:hover': { color: '#fff' },
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </Stack>
+            </Box>
+          ))}
+        </Stack>
+        <Typography
+          variant="caption"
+          sx={{ mt: 3, display: 'block', color: 'rgba(255,255,255,0.6)' }}
+        >
+          © {new Date().getFullYear()} Sobora. Todos os direitos reservados.
+        </Typography>
+      </Container>
     </Box>
   )
 }
