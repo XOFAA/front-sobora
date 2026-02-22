@@ -9,6 +9,12 @@ body,
   margin: 0;
 }
 
+html,
+body {
+  overflow-x: hidden;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
 img {
   display: block;
 }
@@ -47,4 +53,18 @@ img {
 
 .swiper-slide:not(.swiper-slide-active) {
   opacity: 0.6;
+}
+
+.hero-slider .swiper-button-next,
+.hero-slider .swiper-button-prev {
+  background: #ffffff;
+  color: #5f46c4;
+}
+
+.hero-slider .swiper-pagination-bullet {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.hero-slider .swiper-pagination-bullet-active {
+  background: #ffffff;
 }

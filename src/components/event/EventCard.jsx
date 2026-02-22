@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from '@mui/material'
+﻿import { Box, Stack, Typography } from '@mui/material'
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded'
 import { useNavigate } from 'react-router-dom'
@@ -21,10 +21,9 @@ function formatEventDateRange(event) {
   return `De ${first.toLocaleString('pt-BR')} a ${last.toLocaleString('pt-BR')}`
 }
 
-function EventCard({ event }) {
+function EventCard({ event, lightMeta = false }) {
   const navigate = useNavigate()
 
-  // ✅ tenta pegar thumb mobile primeiro (ajuste os campos conforme seu backend)
   const image =
     event.thumbMobile ||
     event.thumb ||
@@ -43,7 +42,6 @@ function EventCard({ event }) {
     >
       <Box
         sx={{
-          // ✅ altura mais “responsiva”
           height: { xs: 200, sm: 240, md: 460 },
           borderRadius: { xs: 2, md: 2 },
           overflow: 'hidden',
@@ -74,20 +72,21 @@ function EventCard({ event }) {
           mt: { xs: 1.25, md: 2 },
           alignItems: 'center',
           textAlign: 'center',
-          px: { xs: 1, md: 0 }, // ✅ respira no mobile
+          px: { xs: 1, md: 0 },
         }}
       >
         <Typography
           variant="h6"
           fontWeight={800}
           sx={{
-            fontSize: { xs: '1rem', sm: '1.05rem', md: '1.25rem' }, // ✅ texto melhor no mobile
+            color: lightMeta ? '#f5f0ff' : 'text.primary',
+            fontSize: { xs: '1rem', sm: '1.05rem', md: '1.25rem' },
             lineHeight: 1.15,
             maxWidth: '100%',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             display: '-webkit-box',
-            WebkitLineClamp: 2,          // ✅ evita título gigante quebrar tudo
+            WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
           }}
         >
@@ -95,10 +94,13 @@ function EventCard({ event }) {
         </Typography>
 
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-          <CalendarMonthRounded fontSize="small" color="disabled" />
+          <CalendarMonthRounded
+            fontSize="small"
+            sx={{ color: lightMeta ? 'rgba(255,255,255,0.72)' : 'text.disabled' }}
+          />
           <Typography
             variant="body2"
-            color="text.secondary"
+            color={lightMeta ? 'rgba(255,255,255,0.9)' : 'text.secondary'}
             sx={{
               fontSize: { xs: '0.8rem', md: '0.875rem' },
               whiteSpace: 'nowrap',
@@ -112,10 +114,13 @@ function EventCard({ event }) {
         </Stack>
 
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-          <LocationOnRounded fontSize="small" color="disabled" />
+          <LocationOnRounded
+            fontSize="small"
+            sx={{ color: lightMeta ? 'rgba(255,255,255,0.72)' : 'text.disabled' }}
+          />
           <Typography
             variant="body2"
-            color="text.secondary"
+            color={lightMeta ? 'rgba(255,255,255,0.9)' : 'text.secondary'}
             sx={{
               fontSize: { xs: '0.8rem', md: '0.875rem' },
               whiteSpace: 'nowrap',

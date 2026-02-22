@@ -1,4 +1,5 @@
-import { Box, Divider, Link, Stack, Typography } from '@mui/material'
+﻿import { Box, Link, Stack, Typography } from '@mui/material'
+import { keyframes } from '@emotion/react'
 import { useNavigate } from 'react-router-dom'
 
 const FOOTER_LINKS = [
@@ -28,24 +29,53 @@ const FOOTER_LINKS = [
   },
 ]
 
+const movingGradient = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`
+
 function Footer() {
   const navigate = useNavigate()
 
   return (
-    <Box component="footer" sx={{ mt: 8, pt: 4, pb: 3 }}>
-      <Divider sx={{ mb: 3 }} />
+    <Box
+      component="footer"
+      sx={{
+        mt: 0,
+        pt: 5,
+        pb: 3,
+        position: 'relative',
+        color: '#fff',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          left: '50%',
+          width: '100dvw',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
+          backgroundSize: '260% 260%',
+          animation: `${movingGradient} 9s ease-in-out infinite`,
+          zIndex: 0,
+        },
+      }}
+    >
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={{ xs: 3, md: 6 }}
         justifyContent="space-between"
+        sx={{ position: 'relative', zIndex: 1 }}
       >
         <Box sx={{ maxWidth: 360 }}>
-          <Typography variant="h6" fontWeight={700}>
-            Sobora
-          </Typography>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>
-            Marketplace de eventos para descobrir experiencias, comprar ingressos e viver
-            momentos que ficam.
+          <Box
+            component="img"
+            src="/assets/sobora-indeias.svg"
+            alt="Sobora powered by Indeias"
+            sx={{ height: 60, width: 'auto', mb: 1 }}
+          />
+          <Typography sx={{ color: 'rgba(255,255,255,0.78)' }}>
+            Marketplace de eventos para descobrir experiências, comprar ingressos e viver momentos que ficam.
           </Typography>
         </Box>
 
@@ -61,8 +91,11 @@ function Footer() {
                   component="button"
                   onClick={() => navigate(item.path)}
                   underline="none"
-                  color="text.secondary"
-                  sx={{ textAlign: 'left' }}
+                  sx={{
+                    textAlign: 'left',
+                    color: 'rgba(255,255,255,0.75)',
+                    '&:hover': { color: '#fff' },
+                  }}
                 >
                   {item.label}
                 </Link>
@@ -71,8 +104,10 @@ function Footer() {
           </Box>
         ))}
       </Stack>
-      <Divider sx={{ mt: 3 }} />
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+      <Typography
+        variant="caption"
+        sx={{ mt: 3, display: 'block', color: 'rgba(255,255,255,0.6)', position: 'relative', zIndex: 1 }}
+      >
         © {new Date().getFullYear()} Sobora. Todos os direitos reservados.
       </Typography>
     </Box>

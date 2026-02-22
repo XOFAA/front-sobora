@@ -1,11 +1,9 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+﻿import { useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, Container, Stack, TextField, Typography } from '@mui/material'
-import { acceptTicketTransfer } from '../services/tickets'
+import { acceptTicketTransferByCode } from '../services/tickets'
 
 function TransferAcceptPage() {
-  const { token } = useParams()
-  const [form, setForm] = useState({ toCpf: '', toEmail: '', toPhone: '' })
+  const [form, setForm] = useState({ code: '', toCpf: '', toEmail: '', toPhone: '' })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -13,7 +11,8 @@ function TransferAcceptPage() {
     setError('')
     setMessage('')
     try {
-      const data = await acceptTicketTransfer(token, form)
+      const { code, ...payload } = form
+      const data = await acceptTicketTransferByCode(code, payload)
       setMessage(data?.message || 'Transferencia aceita com sucesso.')
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao aceitar transferencia.')
@@ -30,9 +29,14 @@ function TransferAcceptPage() {
                 Aceitar transferencia
               </Typography>
               <Typography color="text.secondary">
-                Preencha seus dados para receber o ingresso.
+                Digite o codigo recebido e preencha seus dados para receber o ingresso.
               </Typography>
             </Box>
+            <TextField
+              label="Codigo"
+              value={form.code}
+              onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))}
+            />
             <TextField
               label="CPF"
               value={form.toCpf}

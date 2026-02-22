@@ -24,8 +24,15 @@ import PlaceRounded from '@mui/icons-material/PlaceRounded'
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
 import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded'
 import SendRounded from '@mui/icons-material/SendRounded'
+import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded'
+import VpnKeyRounded from '@mui/icons-material/VpnKeyRounded'
 import { useAuth } from '../contexts/AuthContext'
-import { cancelTicketTransfer, fetchMyTickets, requestTicketTransfer } from '../services/tickets'
+import {
+  acceptTicketTransferByCode,
+  cancelTicketTransfer,
+  fetchMyTickets,
+  requestTicketTransfer,
+} from '../services/tickets'
 import { fetchEvent } from '../services/events'
 import QRCode from 'qrcode'
 
@@ -184,6 +191,16 @@ function MyTicketsPage() {
     message: '',
   })
   const [transferMessage, setTransferMessage] = useState('')
+  const [transferCode, setTransferCode] = useState('')
+  const [acceptForm, setAcceptForm] = useState({
+    code: '',
+    toCpf: '',
+    toEmail: '',
+    toPhone: '',
+    name: '',
+  })
+  const [acceptMessage, setAcceptMessage] = useState('')
+  const [acceptLoading, setAcceptLoading] = useState(false)
 
   const loadTickets = async (silent = false) => {
     if (!silent) setLoading(true)
@@ -201,6 +218,17 @@ function MyTicketsPage() {
   useEffect(() => {
     loadTickets()
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    setAcceptForm((prev) => ({
+      ...prev,
+      toCpf: user.cpf || prev.toCpf,
+      toEmail: user.email || prev.toEmail,
+      toPhone: user.phone || prev.toPhone,
+      name: user.name || prev.name,
+    }))
+  }, [user])
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 1000)
@@ -376,13 +404,54 @@ function MyTicketsPage() {
   const handleTransfer = async () => {
     if (!selectedTicket) return
     setTransferMessage('')
+    setTransferCode('')
     try {
       const data = await requestTicketTransfer(selectedTicket.id, transferForm)
       setTransferMessage(data?.message || 'Transferencia solicitada.')
       setActionMessage(data?.message || 'Transferencia solicitada.')
+      setTransferCode(data?.transfer?.code || data?.code || '')
       await loadTickets(true)
     } catch (err) {
       setTransferMessage(err?.response?.data?.message || 'Falha ao transferir.')
+    }
+  }
+
+  const handleAcceptTransfer = async () => {
+    setAcceptMessage('')
+    if (!acceptForm.code) {
+      setAcceptMessage('Informe o codigo recebido.')
+      return
+    }
+    if (!acceptForm.toCpf || !acceptForm.toEmail || !acceptForm.toPhone) {
+      setAcceptMessage('Complete CPF, e-mail e telefone para resgatar o ingresso.')
+      return
+    }
+    setAcceptLoading(true)
+    try {
+      const payload = {
+        toCpf: acceptForm.toCpf,
+        toEmail: acceptForm.toEmail,
+        toPhone: acceptForm.toPhone,
+        name: acceptForm.name,
+      }
+      const data = await acceptTicketTransferByCode(acceptForm.code, payload)
+      setAcceptMessage(data?.message || 'Transferencia aceita com sucesso.')
+      setActionMessage(data?.message || 'Transferencia aceita com sucesso.')
+      setAcceptForm((prev) => ({ ...prev, code: '' }))
+      await loadTickets(true)
+    } catch (err) {
+      setAcceptMessage(err?.response?.data?.message || 'Falha ao aceitar transferencia.')
+    } finally {
+      setAcceptLoading(false)
+    }
+  }
+
+  const handleCopyCode = async (code) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setActionMessage('Codigo copiado.')
+    } catch {
+      setActionMessage('Nao foi possivel copiar o codigo.')
     }
   }
 
@@ -417,6 +486,93 @@ function MyTicketsPage() {
         </Typography>
       </Box>
 
+      <Card
+        sx={{
+          borderRadius: 3,
+          color: '#fff',
+          background: 'linear-gradient(135deg, #6b4cd6 0%, #5640b3 100%)',
+          boxShadow: '0 16px 28px rgba(67, 56, 103, 0.25)',
+        }}
+      >
+        <CardContent>
+          <Stack spacing={2}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h6" fontWeight={700}>
+                  Resgatar ingresso
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.8)', mt: 0.5 }}>
+                  Digite o código enviado pelo remetente para receber o ingresso.
+                </Typography>
+              </Box>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <TextField
+                  size="small"
+                  label="Código"
+                  value={acceptForm.code}
+                  onChange={(e) => setAcceptForm((prev) => ({ ...prev, code: e.target.value }))}
+                  sx={{ bgcolor: '#fff', borderRadius: 2, minWidth: { xs: '100%', sm: 200 } }}
+                  InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
+                  inputProps={{ maxLength: 6 }}
+                />
+                <Button
+                  variant="contained"
+                  startIcon={<VpnKeyRounded />}
+                  onClick={handleAcceptTransfer}
+                  disabled={acceptLoading}
+                  sx={{
+                    borderRadius: 999,
+                    px: 3,
+                    background: '#fff',
+                    color: '#4a36a6',
+                    '&:hover': { background: '#efeafc' },
+                  }}
+                >
+                  {acceptLoading ? 'Resgatando...' : 'Resgatar'}
+                </Button>
+              </Stack>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+              <TextField
+                size="small"
+                label="CPF"
+                value={acceptForm.toCpf}
+                onChange={(e) => setAcceptForm((prev) => ({ ...prev, toCpf: e.target.value }))}
+                sx={{ bgcolor: '#fff', borderRadius: 2, flex: 1 }}
+                InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
+              />
+              <TextField
+                size="small"
+                label="E-mail"
+                value={acceptForm.toEmail}
+                onChange={(e) => setAcceptForm((prev) => ({ ...prev, toEmail: e.target.value }))}
+                sx={{ bgcolor: '#fff', borderRadius: 2, flex: 1 }}
+                InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
+              />
+              <TextField
+                size="small"
+                label="Telefone"
+                value={acceptForm.toPhone}
+                onChange={(e) => setAcceptForm((prev) => ({ ...prev, toPhone: e.target.value }))}
+                sx={{ bgcolor: '#fff', borderRadius: 2, flex: 1 }}
+                InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
+              />
+            </Stack>
+            <TextField
+              size="small"
+              label="Nome completo"
+              value={acceptForm.name}
+              onChange={(e) => setAcceptForm((prev) => ({ ...prev, name: e.target.value }))}
+              sx={{ bgcolor: '#fff', borderRadius: 2 }}
+              InputLabelProps={{ sx: { color: 'rgba(0,0,0,0.6)' } }}
+            />
+
+            {acceptMessage ? <Alert severity="info">{acceptMessage}</Alert> : null}
+          </Stack>
+        </CardContent>
+      </Card>
+
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs
           value={tab}
@@ -441,7 +597,7 @@ function MyTicketsPage() {
               <Card
                 sx={{
                   height: '100%',
-                  borderRadius: 3,
+                  borderRadius: "10px",
                   overflow: 'hidden',
                   border: '1px solid',
                   borderColor: 'divider',
@@ -502,7 +658,7 @@ function MyTicketsPage() {
                         <Card
                           key={ticket.id}
                           variant="outlined"
-                          sx={{ borderRadius: 2.5, p: 1.5, bgcolor: 'grey.50' }}
+                          sx={{ borderRadius: "10px", p: 1.5, bgcolor: 'grey.50' }}
                         >
                           <Stack spacing={1.2}>
                             <Stack
@@ -516,7 +672,7 @@ function MyTicketsPage() {
                                   {ticket.type}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                  Valor: R$ {(ticket.price / 100).toFixed(2)}
+                                  Valor: R$aaa {(ticket.price / 100).toFixed(2)}
                                 </Typography>
                               </Box>
                               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
@@ -542,6 +698,23 @@ function MyTicketsPage() {
                                 ) : null}
                               </Stack>
                             </Stack>
+
+                            {isTransferPending(ticket, nowMs) &&
+                            ticket.transfer?.fromUserId === user?.id &&
+                            ticket.transfer?.code ? (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <Typography variant="caption" color="text.secondary">
+                                  Codigo: {ticket.transfer.code}
+                                </Typography>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleCopyCode(ticket.transfer.code)}
+                                  aria-label="Copiar codigo"
+                                >
+                                  <ContentCopyRounded fontSize="small" />
+                                </IconButton>
+                              </Stack>
+                            ) : null}
 
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                               <Button
@@ -636,6 +809,9 @@ function MyTicketsPage() {
               onChange={(e) => setTransferForm((prev) => ({ ...prev, message: e.target.value }))}
             />
             {transferMessage ? <Alert severity="info">{transferMessage}</Alert> : null}
+            {transferCode ? (
+              <Alert severity="success">Codigo para compartilhar: {transferCode}</Alert>
+            ) : null}
             <Button variant="contained" onClick={handleTransfer}>
               Enviar transferencia
             </Button>

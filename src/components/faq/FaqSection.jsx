@@ -1,4 +1,4 @@
-import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from '@mui/material'
+﻿import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from '@mui/material'
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded'
 
 const FAQ_ITEMS = [
@@ -19,8 +19,7 @@ const FAQ_ITEMS = [
   },
   {
     question: 'Como recebo meu ingresso?',
-    answer:
-      'Após a confirmação do pagamento, o ingresso é liberado automaticamente na sua conta.',
+    answer: 'Após a confirmação do pagamento, o ingresso é liberado automaticamente na sua conta.',
   },
   {
     question: 'Sou organizador. Como publico meu evento?',
@@ -32,7 +31,7 @@ const FAQ_ITEMS = [
 function FaqSection() {
   return (
     <Box>
-      <Stack spacing={1} sx={{ mb: 2 }}>
+      <Stack spacing={1} sx={{ mb: 2, textAlign: 'center' }}>
         <Typography variant="h5" fontWeight={700}>
           Perguntas frequentes
         </Typography>

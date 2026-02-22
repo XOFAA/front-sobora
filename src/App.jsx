@@ -47,6 +47,7 @@ function App() {
         } />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/login/code" element={<LoginCodePage />} />
+        <Route path="/transfer" element={<TransferAcceptPage />} />
         <Route path="/transfer/:token" element={<TransferAcceptPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

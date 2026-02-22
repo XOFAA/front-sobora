@@ -67,7 +67,7 @@ function MainLayout() {
           >
             <Box
               component="img"
-              src="/assets/sobora-logo.png"
+              src="/assets/sobora-logo.svg"
               alt="Sobora"
               sx={{ height: 36, width: 'auto' }}
             />
@@ -163,7 +163,7 @@ function MainLayout() {
           )}
         </List>
       </Drawer>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ pt: 4, pb: 0 }}>
         {user && user?.faceEnrollment?.status !== 'VERIFIED' ? (
           <Alert
             severity="info"

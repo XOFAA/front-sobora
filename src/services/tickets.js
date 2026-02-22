@@ -15,7 +15,7 @@ export async function cancelTicketTransfer(transferId) {
   return data
 }
 
-export async function acceptTicketTransfer(token, payload) {
-  const { data } = await api.post(`/tickets/transfer/accept/${token}`, payload)
+export async function acceptTicketTransferByCode(code, payload) {
+  const { data } = await api.post('/tickets/transfer/accept', { code, ...payload })
   return data
 }

@@ -9,16 +9,20 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import 'swiper/css/effect-coverflow'
 
-function EventSlider({ events }) {
+function EventSlider({ events, lightMode = false }) {
   const items = useMemo(() => events.slice(0, 8), [events])
   if (!items.length) return null
 
   const middleIndex = Math.floor(items.length / 2)
 
   return (
-    <Box sx={{ position: 'relative' }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Typography variant="h5" fontWeight={700}>
+    <Box className={lightMode ? 'hero-slider' : ''} sx={{ position: 'relative' }}>
+      <Stack direction="row" alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
+        <Typography
+          variant="h5"
+          fontWeight={700}
+          sx={{ color: lightMode ? 'rgba(255,255,255,0.96)' : 'text.primary' }}
+        >
           Experiencias em destaque
         </Typography>
       </Stack>
@@ -98,7 +102,7 @@ function EventSlider({ events }) {
           >
             {items.map((event) => (
               <SwiperSlide key={event.id}>
-                <EventCard event={event} />
+                <EventCard event={event} lightMeta={lightMode} />
               </SwiperSlide>
             ))}
           </Swiper>
