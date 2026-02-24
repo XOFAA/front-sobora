@@ -609,7 +609,7 @@ function MyTicketsPage() {
                   onClick={handleAcceptTransfer}
                   disabled={acceptLoading}
                   sx={{
-                    borderRadius: 999,
+                    borderRadius: '10px',
                     px: 3,
                     background: '#fff',
                     color: '#4a36a6',
@@ -677,7 +677,7 @@ function MyTicketsPage() {
                         Pagamento: {order.paymentStatus || 'Nao informado'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Total: {(order.total ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        Total: {((order.total ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Ingressos: {order.ticketsCount}
@@ -875,7 +875,7 @@ function MyTicketsPage() {
                                   {ticket.type}
                                 </Typography>
                                   <Typography variant="body2" color="text.secondary">
-                                    Valor: {(ticket.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    Valor: {((ticket.price ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                   </Typography>
                               </Box>
                               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
@@ -1006,7 +1006,34 @@ function MyTicketsPage() {
             />
             {transferMessage ? <Alert severity="info">{transferMessage}</Alert> : null}
             {transferCode ? (
-              <Alert severity="success">Codigo para compartilhar: {transferCode}</Alert>
+              <Box
+                sx={{
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  p: 2,
+                  bgcolor: 'grey.50',
+                  textAlign: 'center',
+                }}
+              >
+                <ConfirmationNumberRounded sx={{ fontSize: 40, color: '#6d4ce7' }} />
+                <Typography fontWeight={700} sx={{ mt: 1 }}>
+                  Ingresso transferido com sucesso!
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Codigo para compartilhar: {transferCode}
+                </Typography>
+                <Button
+                  sx={{ mt: 1.5 }}
+                  variant="contained"
+                  onClick={() => {
+                    setSelectedTicket(null)
+                    setTab('TRANSFERRED')
+                  }}
+                >
+                  Ver ingressos transferidos
+                </Button>
+              </Box>
             ) : null}
             <Button variant="contained" onClick={handleTransfer}>
               Enviar transferencia
@@ -1049,9 +1076,6 @@ function MyTicketsPage() {
             {qrTicket ? (
               <Stack spacing={0.5} alignItems="center">
                 <Typography fontWeight={600}>{qrTicket.type}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Codigo: {qrTicket.qrCode}
-                </Typography>
               </Stack>
             ) : null}
           </Stack>

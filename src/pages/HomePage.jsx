@@ -111,7 +111,7 @@ const getEventMinPriceLabel = (event, minPriceFromTickets) => {
     null
 
   if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
-    const formatted = raw.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    const formatted = (raw / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     return `R$ ${formatted.replace('R$\u00A0', '')}`
   }
   return '--'
@@ -229,14 +229,14 @@ function HomePage() {
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <Button
-                    size="small"
-                    variant="contained"
-                    sx={{ borderRadius: 999, px: 1.5, py: 0.4, minWidth: 0, fontSize: '0.75rem' }}
-                    startIcon={<SearchRounded sx={{ fontSize: 14 }} />}
-                  >
-                    Buscar
-                  </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      sx={{ borderRadius: '10px', px: 1.5, py: 0.4, minWidth: 0, fontSize: '0.75rem' }}
+                      startIcon={<SearchRounded sx={{ fontSize: 14 }} />}
+                    >
+                      Buscar
+                    </Button>
                 </InputAdornment>
               ),
             }}
@@ -299,20 +299,20 @@ function HomePage() {
               key={category.key}
               label={category.label}
               clickable
-              color={eventsCategory === category.key ? 'primary' : 'default'}
-              variant={eventsCategory === category.key ? 'filled' : 'outlined'}
+              color="default"
+              variant="filled"
               onClick={() => setEventsCategory(category.key)}
               icon={<Icon sx={{ fontSize: 18 }} />}
               sx={{
                 fontWeight: 600,
                 px: 0.5,
-                borderRadius: 999,
-                bgcolor: eventsCategory === category.key ? '#6d4ce7' : '#fff',
-                color: eventsCategory === category.key ? '#fff' : 'text.primary',
-                borderColor: eventsCategory === category.key ? 'transparent' : 'divider',
+                borderRadius: '10px',
+                bgcolor: eventsCategory === category.key ? '#5f45da' : '#fff',
+                color: eventsCategory === category.key ? '#fff' : '#5f45da',
+                border: eventsCategory === category.key ? '1px solid #5f45da' : '1px solid #e5e7eb',
                 boxShadow: eventsCategory === category.key ? '0 10px 18px rgba(109, 76, 231, 0.28)' : 'none',
                 '& .MuiChip-icon': {
-                  color: eventsCategory === category.key ? '#fff' : '#6d4ce7',
+                  color: eventsCategory === category.key ? '#fff' : '#5f45da',
                 },
               }}
             />
@@ -414,7 +414,7 @@ function HomePage() {
                             onClick={() => navigate(`/events/${event.id}`)}
                             startIcon={<AddRounded sx={{ fontSize: 16 }} />}
                             sx={{
-                              borderRadius: 999,
+                              borderRadius: '10px',
                               px: 2,
                               bgcolor: '#6d4ce7',
                               '&:hover': { bgcolor: '#5a3fd6' },

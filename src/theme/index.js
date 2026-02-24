@@ -53,7 +53,7 @@ const theme = createTheme({
       focus: alpha(BRAND, 0.16),
     },
   },
-  shape: { borderRadius: '10px' },
+  shape: { borderRadius: 10 },
   typography: {
     fontFamily: '"Space Grotesk", "Inter", system-ui, sans-serif',
     h4: { fontWeight: 700, letterSpacing: -0.5 },
@@ -130,7 +130,7 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 999,
+          borderRadius: '10px',
           backgroundColor: alpha(BRAND, 0.12),
           border: `1px solid ${alpha(BRAND, 0.3)}`,
           color: BRAND,

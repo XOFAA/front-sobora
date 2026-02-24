@@ -24,7 +24,7 @@ import { useAuth } from '../contexts/AuthContext'
 const STEPS = ['Ingressos', 'Dados', 'Pagamento', 'Revisao']
 
 function formatPrice(value) {
-  return (value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return ((value ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 function CheckoutPage() {
@@ -84,8 +84,8 @@ function CheckoutPage() {
         quantity: item.quantity,
         isHalf: item.isHalf,
       }))
-      const data = await createOrder(payload)
-      setSuccess(`Pedido criado com sucesso. ID: ${data?.order?.id || 'gerado'}.`)
+      await createOrder(payload)
+      setSuccess('Estamos processando sua compra.')
       setStep(STEPS.length - 1)
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao finalizar o pedido.')
@@ -280,22 +280,59 @@ function CheckoutPage() {
       )}
 
       {error ? <Alert severity="error">{error}</Alert> : null}
-      {success ? <Alert severity="success">{success}</Alert> : null}
 
-      <Stack direction="row" spacing={2} justifyContent="space-between">
-        <Button variant="text" onClick={step === 0 ? () => navigate(-1) : goBack}>
-          Voltar
-        </Button>
-        {step < STEPS.length - 1 ? (
-          <Button variant="contained" onClick={goNext}>
-            Continuar
+      {success ? (
+        <Card>
+          <CardContent>
+            <Stack spacing={2} alignItems="center">
+              <Box
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  bgcolor: '#DCFCE7',
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: '#16A34A',
+                  fontSize: 28,
+                  fontWeight: 700,
+                }}
+              >
+                ✓
+              </Box>
+              <Stack spacing={0.5} alignItems="center">
+                <Typography fontWeight={700}>Estamos processando sua compra</Typography>
+                <Typography variant="body2" color="text.secondary" align="center">
+                  Assim que o pagamento for confirmado, seus ingressos aparecem automaticamente.
+                </Typography>
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <Button variant="contained" onClick={() => navigate('/tickets')}>
+                  Ver meus ingressos
+                </Button>
+                <Button variant="outlined" onClick={() => navigate('/')}>
+                  Voltar para eventos
+                </Button>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      ) : (
+        <Stack direction="row" spacing={2} justifyContent="space-between">
+          <Button variant="text" onClick={step === 0 ? () => navigate(-1) : goBack}>
+            Voltar
           </Button>
-        ) : (
-          <Button variant="contained" onClick={handleConfirm} disabled={loading}>
-            {loading ? 'Processando...' : 'Confirmar compra'}
-          </Button>
-        )}
-      </Stack>
+          {step < STEPS.length - 1 ? (
+            <Button variant="contained" onClick={goNext}>
+              Continuar
+            </Button>
+          ) : (
+            <Button variant="contained" onClick={handleConfirm} disabled={loading}>
+              {loading ? 'Processando...' : 'Confirmar compra'}
+            </Button>
+          )}
+        </Stack>
+      )}
     </Stack>
   )
 }

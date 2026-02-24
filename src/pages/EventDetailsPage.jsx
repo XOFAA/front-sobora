@@ -17,6 +17,13 @@ import Grid from '@mui/material/Grid'
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded'
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
 import CloseRounded from '@mui/icons-material/CloseRounded'
+import MapRounded from '@mui/icons-material/MapRounded'
+import EventAvailableRounded from '@mui/icons-material/EventAvailableRounded'
+import ShareRounded from '@mui/icons-material/ShareRounded'
+import DirectionsRounded from '@mui/icons-material/DirectionsRounded'
+import Dialog from '@mui/material/Dialog'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import Checkbox from '@mui/material/Checkbox'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import { fetchEvent, fetchTicketTypes } from '../services/events'
@@ -79,6 +86,7 @@ function EventDetailsPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [ticketSheetOpen, setTicketSheetOpen] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -128,12 +136,25 @@ function EventDetailsPage() {
   }, [ticketTypes])
 
   const formatPrice = (value) =>
-    (value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    ((value ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   const getEventDateLabel = (value) => {
     if (!value) return 'Data a definir'
     const date = new Date(value)
     return Number.isNaN(date.getTime()) ? 'Data a definir' : date.toLocaleString('pt-BR')
+  }
+
+  const getEventDateRange = (value) => {
+    const values = Array.isArray(value?.dates) && value.dates.length ? value.dates : value?.date ? [value.date] : []
+    if (!values.length) return []
+    const parsed = values.map((item) => new Date(item)).filter((item) => !Number.isNaN(item.getTime()))
+    if (!parsed.length) return []
+    return [parsed[0], parsed[parsed.length - 1]]
+  }
+
+  const toGoogleCalendarDate = (date) => {
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`
   }
 
   const descriptionBlocks = useMemo(
@@ -174,6 +195,56 @@ function EventDetailsPage() {
       },
     })
   }
+
+  const handleShare = async () => {
+    const url = window.location.href
+    const title = event?.name || 'Evento'
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: title, url })
+      } else {
+        await navigator.clipboard.writeText(url)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleDirections = () => {
+    const query = event?.location || ''
+    const lat = event?.latitude
+    const lng = event?.longitude
+    const mapsUrl =
+      typeof lat === 'number' && typeof lng === 'number'
+        ? `https://www.google.com/maps?q=${lat},${lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+    window.open(mapsUrl, '_blank')
+  }
+
+  const handleAddToCalendar = () => {
+    const [start, end] = getEventDateRange(event)
+    const startDate = start || (event?.date ? new Date(event.date) : null)
+    const endDate = end || startDate
+    if (!startDate || !endDate) return
+
+    const details = event?.description ? event.description.replace(/<[^>]*>/g, '') : ''
+    const location = event?.location || ''
+    const calendarUrl =
+      `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+      `&text=${encodeURIComponent(event?.name || 'Evento')}` +
+      `&dates=${toGoogleCalendarDate(startDate)}/${toGoogleCalendarDate(endDate)}` +
+      `&details=${encodeURIComponent(details)}` +
+      `&location=${encodeURIComponent(location)}`
+
+    window.open(calendarUrl, '_blank')
+  }
+
+  const isEventPast = (() => {
+    const [start, end] = getEventDateRange(event)
+    const lastDate = end || start || (event?.date ? new Date(event.date) : null)
+    if (!lastDate) return false
+    return lastDate.getTime() < Date.now()
+  })()
 
   if (loading) {
     return <Typography color="text.secondary">Carregando evento...</Typography>
@@ -331,7 +402,16 @@ function EventDetailsPage() {
             <Typography variant="h4" fontWeight={700}>
               {event.name}
             </Typography>
-            <Chip label="Disponivel" />
+            <Chip
+              label={isEventPast ? 'Encerrado' : 'Disponivel'}
+              sx={{
+                borderRadius: '10px',
+                bgcolor: isEventPast ? '#FEE2E2' : '#DCFCE7',
+                color: isEventPast ? '#B91C1C' : '#16A34A',
+                border: `1px solid ${isEventPast ? '#FCA5A5' : '#86EFAC'}`,
+                fontWeight: 700,
+              }}
+            />
           </Stack>
           <Stack spacing={1} sx={{ mt: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center">
@@ -342,6 +422,80 @@ function EventDetailsPage() {
               <LocationOnRounded fontSize="small" color="disabled" />
               <Typography color="text.secondary">{event.location}</Typography>
             </Stack>
+          </Stack>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{ mt: 2, flexWrap: 'wrap' }}
+          >
+            <Button
+              variant="outlined"
+              startIcon={<MapRounded />}
+              onClick={() => setMapOpen(true)}
+              sx={{
+                borderRadius: '10px',
+                borderColor: '#CBD5E1',
+                color: '#475569',
+                fontWeight: 600,
+                px: 1.6,
+                py: 0.9,
+                '& .MuiButton-startIcon': { color: '#64748B' },
+                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
+              }}
+            >
+              Mapa do evento
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<EventAvailableRounded />}
+              onClick={handleAddToCalendar}
+              sx={{
+                borderRadius: '10px',
+                borderColor: '#CBD5E1',
+                color: '#475569',
+                fontWeight: 600,
+                px: 1.6,
+                py: 0.9,
+                '& .MuiButton-startIcon': { color: '#64748B' },
+                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
+              }}
+            >
+              Adicionar ao calendario
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<DirectionsRounded />}
+              onClick={handleDirections}
+              sx={{
+                borderRadius: '10px',
+                borderColor: '#CBD5E1',
+                color: '#475569',
+                fontWeight: 600,
+                px: 1.6,
+                py: 0.9,
+                '& .MuiButton-startIcon': { color: '#64748B' },
+                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
+              }}
+            >
+              Saiba como chegar
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ShareRounded />}
+              onClick={handleShare}
+              sx={{
+                borderRadius: '10px',
+                borderColor: '#CBD5E1',
+                color: '#475569',
+                fontWeight: 600,
+                px: 1.6,
+                py: 0.9,
+                '& .MuiButton-startIcon': { color: '#64748B' },
+                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
+              }}
+            >
+              Compartilhar
+            </Button>
           </Stack>
         </CardContent>
       </Card>
@@ -495,6 +649,34 @@ function EventDetailsPage() {
           </Button>
         </Stack>
       </Drawer>
+
+      <Dialog open={mapOpen} onClose={() => setMapOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ pr: 6 }}>
+          Mapa do evento
+          <IconButton
+            onClick={() => setMapOpen(false)}
+            sx={{ position: 'absolute', right: 12, top: 12 }}
+          >
+            <CloseRounded />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box
+            sx={{
+              width: '100%',
+              height: 260,
+              borderRadius: 2,
+              bgcolor: 'grey.100',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'text.secondary',
+            }}
+          >
+            Mapa do evento (mock)
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Stack>
   )
 }
