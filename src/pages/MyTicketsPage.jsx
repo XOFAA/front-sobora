@@ -27,6 +27,7 @@ import SendRounded from '@mui/icons-material/SendRounded'
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded'
 import VpnKeyRounded from '@mui/icons-material/VpnKeyRounded'
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded'
+import ConfirmationNumberRounded from '@mui/icons-material/ConfirmationNumberRounded'
 import { useAuth } from '../contexts/AuthContext'
 import {
   acceptTicketTransferByCode,
