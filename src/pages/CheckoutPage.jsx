@@ -82,6 +82,7 @@ function CheckoutPage() {
       const payload = items.map((item) => ({
         ticketTypeId: item.ticketTypeId,
         quantity: item.quantity,
+        isHalf: item.isHalf,
       }))
       const data = await createOrder(payload)
       setSuccess(`Pedido criado com sucesso. ID: ${data?.order?.id || 'gerado'}.`)
@@ -130,6 +131,11 @@ function CheckoutPage() {
                     <Typography variant="body2" color="text.secondary">
                       Quantidade: {item.quantity}
                     </Typography>
+                    {item.isHalf ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Meia-entrada
+                      </Typography>
+                    ) : null}
                   </Box>
                   <Typography fontWeight={700}>{formatPrice(item.price * item.quantity)}</Typography>
                 </Stack>

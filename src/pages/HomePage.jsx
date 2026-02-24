@@ -1,14 +1,27 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { Box, Button, InputAdornment, Stack, TextField, Typography } from '@mui/material'
+import { Card, CardContent, Chip } from '@mui/material'
+import Grid from '@mui/material/Grid'
 import SearchRounded from '@mui/icons-material/SearchRounded'
 import ConfirmationNumberRounded from '@mui/icons-material/ConfirmationNumberRounded'
 import CreditCardRounded from '@mui/icons-material/CreditCardRounded'
 import EmojiEmotionsRounded from '@mui/icons-material/EmojiEmotionsRounded'
 import AddRounded from '@mui/icons-material/AddRounded'
+import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
+import PlaceRounded from '@mui/icons-material/PlaceRounded'
+import FormatListBulletedRounded from '@mui/icons-material/FormatListBulletedRounded'
+import MusicNoteRounded from '@mui/icons-material/MusicNoteRounded'
+import TheaterComedyRounded from '@mui/icons-material/TheaterComedyRounded'
+import TravelExploreRounded from '@mui/icons-material/TravelExploreRounded'
+import SchoolRounded from '@mui/icons-material/SchoolRounded'
+import SportsSoccerRounded from '@mui/icons-material/SportsSoccerRounded'
+import RecordVoiceOverRounded from '@mui/icons-material/RecordVoiceOverRounded'
+import MenuBookRounded from '@mui/icons-material/MenuBookRounded'
 import { keyframes } from '@emotion/react'
 import EventSlider from '../components/event/EventSlider'
 import FaqSection from '../components/faq/FaqSection'
-import { fetchEvents } from '../services/events'
+import { fetchEvents, fetchTicketTypes } from '../services/events'
+import { useNavigate } from 'react-router-dom'
 
 const HOW_IT_WORKS = [
   {
@@ -39,19 +52,135 @@ const movingGradient = keyframes`
   100% { background-position: 0% 50%; }
 `
 
+const EVENT_CATEGORIES = [
+  { key: 'ALL', label: 'Todos', icon: FormatListBulletedRounded },
+  { key: 'SHOWS', label: 'Shows', icon: MusicNoteRounded },
+  { key: 'TEATRO', label: 'Teatro', icon: TheaterComedyRounded },
+  { key: 'TURISMO', label: 'Turismo', icon: TravelExploreRounded },
+  { key: 'EDUCATIVO', label: 'Educativo', icon: SchoolRounded },
+  { key: 'ESPORTES', label: 'Esportes', icon: SportsSoccerRounded },
+  { key: 'PALESTRAS', label: 'Palestras', icon: RecordVoiceOverRounded },
+  { key: 'CURSOS', label: 'Cursos', icon: MenuBookRounded },
+]
+
+const CATEGORY_MATCHERS = [
+  { key: 'SHOWS', terms: ['show', 'shows', 'musica', 'música', 'musical', 'festival'] },
+  { key: 'TEATRO', terms: ['teatro', 'peca', 'peça'] },
+  { key: 'TURISMO', terms: ['turismo', 'viagem', 'tour', 'passeio'] },
+  { key: 'EDUCATIVO', terms: ['educativo', 'educacao', 'educação', 'workshop', 'oficina'] },
+  { key: 'ESPORTES', terms: ['esporte', 'esportes', 'corrida', 'maratona', 'futebol'] },
+  { key: 'PALESTRAS', terms: ['palestra', 'palestras', 'conferencia', 'conferência', 'talk'] },
+  { key: 'CURSOS', terms: ['curso', 'cursos', 'aula', 'treinamento'] },
+]
+
+const normalizeText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+const resolveEventCategory = (event) => {
+  const values = [
+    event?.category,
+    event?.categoryName,
+    event?.type,
+    event?.segment,
+    event?.tag,
+    ...(Array.isArray(event?.tags) ? event.tags : []),
+  ]
+    .map((value) => (typeof value === 'string' ? value : ''))
+    .filter(Boolean)
+
+  if (!values.length) return null
+
+  const normalized = values.map(normalizeText).join(' ')
+  const match = CATEGORY_MATCHERS.find((item) =>
+    item.terms.some((term) => normalized.includes(normalizeText(term))),
+  )
+  return match ? match.key : null
+}
+
+const getEventMinPriceLabel = (event, minPriceFromTickets) => {
+  const raw =
+    minPriceFromTickets ??
+    event?.minPrice ??
+    event?.startingPrice ??
+    event?.startPrice ??
+    event?.price ??
+    event?.minimumPrice ??
+    null
+
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    const formatted = raw.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    return `R$ ${formatted.replace('R$\u00A0', '')}`
+  }
+  return '--'
+}
+
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
+
+const resolveImage = (value) => {
+  if (!value) return ''
+  if (value.startsWith('http://') || value.startsWith('https://')) return value
+  if (value.startsWith('/')) return `${apiBaseUrl}${value}`
+  return `${apiBaseUrl}/${value}`
+}
+
+const getEventImageRaw = (event) =>
+  event?.thumbMobile ||
+  event?.thumb ||
+  event?.thumbDesktop ||
+  event?.image ||
+  event?.banner ||
+  event?.cover ||
+  ''
+
+const getEventDates = (event) => {
+  if (Array.isArray(event?.dates) && event.dates.length) return event.dates
+  if (event?.date) return [event.date]
+  return []
+}
+
+const formatEventDateRange = (event) => {
+  const dates = getEventDates(event)
+  if (!dates.length) return 'Sem data'
+  if (dates.length === 1) return new Date(dates[0]).toLocaleString('pt-BR')
+  const first = new Date(dates[0])
+  const last = new Date(dates[dates.length - 1])
+  return `De ${first.toLocaleString('pt-BR')} a ${last.toLocaleString('pt-BR')}`
+}
+
 function HomePage() {
+  const navigate = useNavigate()
   const [events, setEvents] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [eventsCategory, setEventsCategory] = useState('ALL')
+  const [minPriceByEventId, setMinPriceByEventId] = useState({})
 
   useEffect(() => {
     let active = true
     const load = async () => {
       try {
-        const data = await fetchEvents()
-        if (active) setEvents(data || [])
+        const [eventsData, ticketTypesData] = await Promise.all([
+          fetchEvents(),
+          fetchTicketTypes(),
+        ])
+        if (!active) return
+        setEvents(eventsData || [])
+
+        const map = (ticketTypesData || []).reduce((acc, ticket) => {
+          const eventId = ticket?.eventId
+          const price = typeof ticket?.price === 'number' ? ticket.price : null
+          if (!eventId || price == null || price <= 0) return acc
+          const current = acc[eventId]
+          acc[eventId] = current == null ? price : Math.min(current, price)
+          return acc
+        }, {})
+        setMinPriceByEventId(map)
       } catch {
         if (active) setEvents([])
+        if (active) setMinPriceByEventId({})
       } finally {
         if (active) setLoading(false)
       }
@@ -71,6 +200,11 @@ function HomePage() {
       ),
     )
   }, [events, search])
+
+  const filteredEvents = useMemo(() => {
+    if (eventsCategory === 'ALL') return events
+    return events.filter((event) => resolveEventCategory(event) === eventsCategory)
+  }, [events, eventsCategory])
 
   return (
     <Stack spacing={0}>
@@ -136,6 +270,171 @@ function HomePage() {
             <EventSlider events={filtered} lightMode />
           )}
         </Box>
+      </Box>
+
+      <Box sx={{ pt: { xs: 4, md: 5 } }}>
+        <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 } }}>
+          <Typography variant="h5" fontWeight={700}>
+            Mais eventos
+          </Typography>
+          <Typography color="text.secondary">
+            Descubra os melhores eventos culturais e outros formatos que estao por vir.
+          </Typography>
+        </Stack>
+
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            rowGap: 1,
+            mb: { xs: 2.5, md: 3 },
+          }}
+        >
+        {EVENT_CATEGORIES.map((category) => {
+          const Icon = category.icon
+          return (
+            <Chip
+              key={category.key}
+              label={category.label}
+              clickable
+              color={eventsCategory === category.key ? 'primary' : 'default'}
+              variant={eventsCategory === category.key ? 'filled' : 'outlined'}
+              onClick={() => setEventsCategory(category.key)}
+              icon={<Icon sx={{ fontSize: 18 }} />}
+              sx={{
+                fontWeight: 600,
+                px: 0.5,
+                borderRadius: 999,
+                bgcolor: eventsCategory === category.key ? '#6d4ce7' : '#fff',
+                color: eventsCategory === category.key ? '#fff' : 'text.primary',
+                borderColor: eventsCategory === category.key ? 'transparent' : 'divider',
+                boxShadow: eventsCategory === category.key ? '0 10px 18px rgba(109, 76, 231, 0.28)' : 'none',
+                '& .MuiChip-icon': {
+                  color: eventsCategory === category.key ? '#fff' : '#6d4ce7',
+                },
+              }}
+            />
+          )
+        })}
+        </Stack>
+
+        {loading ? (
+          <Typography color="text.secondary" align="center">
+            Carregando eventos...
+          </Typography>
+        ) : filteredEvents.length ? (
+          <Grid container spacing={2}>
+            {filteredEvents.slice(0, 6).map((event) => {
+              const imageRaw = getEventImageRaw(event)
+              const image = imageRaw ? resolveImage(imageRaw) : ''
+              const categoryKey = resolveEventCategory(event)
+              const categoryLabel =
+                EVENT_CATEGORIES.find((item) => item.key === categoryKey)?.label || 'Evento'
+              const minPrice = minPriceByEventId[event.id]
+
+              return (
+                <Grid key={event.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      borderRadius: '14px',
+                      border: '1px solid',
+                      borderColor: 'rgba(15, 23, 42, 0.12)',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      bgcolor: '#fff',
+                      boxShadow: '0 14px 26px rgba(15, 23, 42, 0.08)',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        height: 180,
+                        bgcolor: 'grey.100',
+                        background: image
+                          ? 'transparent'
+                          : 'linear-gradient(135deg, #dbeafe 0%, #e2e8f0 100%)',
+                      }}
+                    >
+                      {image ? (
+                        <Box
+                          component="img"
+                          src={image}
+                          alt={event.name || 'Evento'}
+                          loading="lazy"
+                          sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : null}
+                    </Box>
+                    <CardContent sx={{ flex: 1 }}>
+                      <Stack spacing={1}>
+                        <Chip
+                          label={categoryLabel}
+                          size="small"
+                          sx={{
+                            alignSelf: 'flex-start',
+                            bgcolor: 'rgba(109, 40, 217, 0.12)',
+                            color: '#6d4ce7',
+                            fontWeight: 700,
+                          }}
+                        />
+                        <Typography fontWeight={700} sx={{ lineHeight: 1.25 }}>
+                          {event.name || 'Evento'}
+                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <CalendarMonthRounded fontSize="small" color="disabled" />
+                          <Typography variant="body2" color="text.secondary">
+                            {formatEventDateRange(event)}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <PlaceRounded fontSize="small" color="disabled" />
+                          <Typography variant="body2" color="text.secondary">
+                            {event.location || 'Local a definir'}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <ConfirmationNumberRounded fontSize="small" sx={{ color: '#9ca3af' }} />
+                            <Stack spacing={0} alignItems="flex-start">
+                              <Typography variant="caption" color="text.secondary">
+                                Ingressos a partir de
+                              </Typography>
+                              <Typography fontWeight={700} sx={{ color: '#6d4ce7' }}>
+                                {getEventMinPriceLabel(event, minPrice)}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => navigate(`/events/${event.id}`)}
+                            startIcon={<AddRounded sx={{ fontSize: 16 }} />}
+                            sx={{
+                              borderRadius: 999,
+                              px: 2,
+                              bgcolor: '#6d4ce7',
+                              '&:hover': { bgcolor: '#5a3fd6' },
+                            }}
+                          >
+                            Comprar
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )
+            })}
+          </Grid>
+        ) : (
+          <Typography color="text.secondary" align="center">
+            Nenhum evento encontrado nesta categoria.
+          </Typography>
+        )}
       </Box>
 
       <Box sx={{ pt: { xs: 4, md: 5 } }}>

@@ -17,6 +17,8 @@ import Grid from '@mui/material/Grid'
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded'
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
 import CloseRounded from '@mui/icons-material/CloseRounded'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import { fetchEvent, fetchTicketTypes } from '../services/events'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -72,6 +74,7 @@ function EventDetailsPage() {
   const [event, setEvent] = useState(null)
   const [ticketTypes, setTicketTypes] = useState([])
   const [quantities, setQuantities] = useState({})
+  const [halfSelections, setHalfSelections] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -110,9 +113,13 @@ function EventDetailsPage() {
   const totalPrice = useMemo(() => {
     return ticketTypes.reduce((acc, ticket) => {
       const qty = quantities[ticket.id] || 0
-      return acc + qty * (ticket.price || 0)
+      const isHalf = Boolean(halfSelections[ticket.id])
+      const unitPrice = isHalf
+        ? Math.round((ticket.price || 0) * ((ticket.halfPricePercent ?? 50) / 100))
+        : (ticket.price || 0)
+      return acc + qty * unitPrice
     }, 0)
-  }, [ticketTypes, quantities])
+  }, [ticketTypes, quantities, halfSelections])
 
   const minPrice = useMemo(() => {
     const prices = ticketTypes.map((ticket) => ticket.price || 0).filter((price) => price > 0)
@@ -123,6 +130,12 @@ function EventDetailsPage() {
   const formatPrice = (value) =>
     (value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
+  const getEventDateLabel = (value) => {
+    if (!value) return 'Data a definir'
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? 'Data a definir' : date.toLocaleString('pt-BR')
+  }
+
   const descriptionBlocks = useMemo(
     () => renderDescriptionWithEmbeds(event?.description || ''),
     [event?.description],
@@ -131,15 +144,20 @@ function EventDetailsPage() {
   const handleCheckout = () => {
     setError('')
     setSuccess('')
-    const selected = Object.entries(quantities)
+      const selected = Object.entries(quantities)
       .filter(([, qty]) => qty > 0)
       .map(([ticketTypeId, quantity]) => {
         const ticketType = ticketTypes.find((ticket) => ticket.id === ticketTypeId)
+        const isHalf = Boolean(halfSelections[ticketTypeId])
+        const unitPrice = isHalf
+          ? Math.round((ticketType?.price || 0) * ((ticketType?.halfPricePercent ?? 50) / 100))
+          : (ticketType?.price || 0)
         return {
           ticketTypeId,
           quantity,
           name: ticketType?.name || 'Ingresso',
-          price: ticketType?.price || 0,
+          price: unitPrice,
+          isHalf,
         }
       })
     if (!selected.length) {
@@ -170,16 +188,33 @@ function EventDetailsPage() {
       {ticketTypes.length ? (
         ticketTypes.map((ticket) => {
           const qty = quantities[ticket.id] || 0
+          const isHalf = Boolean(halfSelections[ticket.id])
+          const unitPrice = isHalf
+            ? Math.round((ticket.price || 0) * ((ticket.halfPricePercent ?? 50) / 100))
+            : (ticket.price || 0)
           return (
             <Stack
               key={ticket.id}
               spacing={1}
               sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 2 }}
             >
-              <Stack direction="row" justifyContent="space-between">
-                <Typography fontWeight={600}>{ticket.name}</Typography>
-                <Typography fontWeight={600}>
-                  {formatPrice(ticket.price || 0)}
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Typography fontWeight={700}>{ticket.name}</Typography>
+                  {ticket.description ? (
+                    <Typography variant="body2" color="text.secondary">
+                      {ticket.description}
+                    </Typography>
+                  ) : null}
+                </Box>
+                <Typography fontWeight={700} sx={{ color: '#6d4ce7' }}>
+                  {formatPrice(unitPrice)}
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <CalendarMonthRounded fontSize="small" color="disabled" />
+                <Typography variant="body2" color="text.secondary">
+                  {getEventDateLabel(event?.date)}
                 </Typography>
               </Stack>
               <Stack direction="row" spacing={1}>
@@ -220,6 +255,55 @@ function EventDetailsPage() {
                   +
                 </Button>
               </Stack>
+              {ticket.allowHalfPrice ? (
+                <Box>
+                  <FormControlLabel
+                    control={(
+                      <Checkbox
+                        checked={isHalf}
+                        onChange={() =>
+                          setHalfSelections((prev) => ({
+                            ...prev,
+                            [ticket.id]: !isHalf,
+                          }))
+                        }
+                      />
+                    )}
+                    label={`Comprar meia-entrada (${ticket.halfPricePercent ?? 50}% de desconto)`}
+                  />
+                  {isHalf ? (
+                    <Box
+                      sx={{
+                        mt: 1,
+                        px: 1.5,
+                        py: 1,
+                        borderRadius: 1.5,
+                        bgcolor: '#fff7ed',
+                        border: '1px solid #fdba74',
+                        color: '#9a3412',
+                        fontSize: '0.82rem',
+                      }}
+                    >
+                      <Typography fontWeight={700} sx={{ mb: 0.5, color: '#ea580c' }}>
+                        Documentos aceitos para meia-entrada:
+                      </Typography>
+                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                        <li>Carteira de estudante (com validade)</li>
+                        <li>Carteirinha do id jovem</li>
+                        <li>Documento que comprove 60+ anos</li>
+                        <li>Laudo médico (PCD)</li>
+                      </Box>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                        *Apresentação obrigatória na entrada
+                      </Typography>
+                    </Box>
+                  ) : null}
+                </Box>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  Meia-entrada não disponível
+                </Typography>
+              )}
             </Stack>
           )
         })
