@@ -21,7 +21,7 @@ import { keyframes } from '@emotion/react'
 import EventSlider from '../components/event/EventSlider'
 import FaqSection from '../components/faq/FaqSection'
 import { fetchEvents, fetchTicketTypes } from '../services/events'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const HOW_IT_WORKS = [
   {
@@ -152,11 +152,22 @@ const formatEventDateRange = (event) => {
 
 function HomePage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [events, setEvents] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [eventsCategory, setEventsCategory] = useState('ALL')
   const [minPriceByEventId, setMinPriceByEventId] = useState({})
+
+  useEffect(() => {
+    if (!location.hash) return
+    const id = location.hash.replace('#', '')
+    if (!id) return
+    const target = document.getElementById(id)
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [location.hash])
 
   useEffect(() => {
     let active = true
@@ -272,7 +283,7 @@ function HomePage() {
         </Box>
       </Box>
 
-      <Box sx={{ pt: { xs: 4, md: 5 } }}>
+      <Box id="eventos" sx={{ pt: { xs: 4, md: 5 }, scrollMarginTop: { xs: 90, md: 110 } }}>
         <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 } }}>
           <Typography variant="h5" fontWeight={700}>
             Mais eventos
@@ -437,7 +448,7 @@ function HomePage() {
         )}
       </Box>
 
-      <Box sx={{ pt: { xs: 4, md: 5 } }}>
+      <Box id="como-funciona" sx={{ pt: { xs: 4, md: 5 }, scrollMarginTop: { xs: 90, md: 110 } }}>
         <Stack spacing={1} sx={{ textAlign: 'center', mb: { xs: 3, md: 4 } }}>
           <Typography variant="h5" fontWeight={700}>
             Como funciona?
@@ -497,7 +508,10 @@ function HomePage() {
       <Box sx={{ pt: { xs: 4, md: 5 } }}>
         <FaqSection />
       </Box>
-      <Box sx={{ pt: { xs: 4, md: 5 }, pb: { xs: 1, md: 2 }, textAlign: 'center' }}>
+      <Box
+        id="criar-evento"
+        sx={{ pt: { xs: 4, md: 5 }, pb: { xs: 1, md: 2 }, textAlign: 'center', scrollMarginTop: { xs: 90, md: 110 } }}
+      >
         <Stack spacing={1} sx={{ mb: 2 }}>
           <Typography variant="h5" fontWeight={700}>
             Organiza eventos?

@@ -21,6 +21,8 @@ import LoginRounded from '@mui/icons-material/LoginRounded'
 import MenuRounded from '@mui/icons-material/MenuRounded'
 import LogoutRounded from '@mui/icons-material/LogoutRounded'
 import AccountCircleRounded from '@mui/icons-material/AccountCircleRounded'
+import EmojiEmotionsRounded from '@mui/icons-material/EmojiEmotionsRounded'
+import AddRounded from '@mui/icons-material/AddRounded'
 import { useState } from 'react'
 import { keyframes } from '@emotion/react'
 import Footer from './Footer'
@@ -39,6 +41,10 @@ function MainLayout() {
   const closeMobile = () => setMobileOpen(false)
   const handleNavigate = (path) => {
     navigate(path)
+    closeMobile()
+  }
+  const handleNavigateHash = (hash) => {
+    navigate(`/#${hash}`)
     closeMobile()
   }
   const handleLogout = () => {
@@ -75,11 +81,17 @@ function MainLayout() {
           </Stack>
           <Box sx={{ flex: 1 }} />
           <Stack direction="row" spacing={1} alignItems="center" sx={{ display: { xs: 'none', md: 'flex' } }}>
-            <Button sx={{ color: '#fff' }} startIcon={<EventRounded />} onClick={() => navigate('/')}>
+            <Button sx={{ color: '#fff' }} startIcon={<EventRounded />} onClick={() => navigate('/#eventos')}>
               Eventos
             </Button>
             <Button sx={{ color: '#fff' }} startIcon={<TicketRounded />} onClick={() => navigate('/tickets')}>
               Meus ingressos
+            </Button>
+            <Button sx={{ color: '#fff' }} startIcon={<EmojiEmotionsRounded />} onClick={() => navigate('/#como-funciona')}>
+              Como funciona
+            </Button>
+            <Button sx={{ color: '#fff' }} startIcon={<AddRounded />} onClick={() => navigate('/#criar-evento')}>
+              Criar evento
             </Button>
             {user ? (
               <Button sx={{ color: '#fff' }} startIcon={<AccountCircleRounded />} onClick={() => navigate('/profile')}>
@@ -127,7 +139,7 @@ function MainLayout() {
         PaperProps={{ sx: { width: 280, p: 1 } }}
       >
         <List>
-          <ListItemButton onClick={() => handleNavigate('/')}>
+          <ListItemButton onClick={() => handleNavigateHash('eventos')}>
             <ListItemIcon>
               <EventRounded />
             </ListItemIcon>
@@ -138,6 +150,18 @@ function MainLayout() {
               <TicketRounded />
             </ListItemIcon>
             <ListItemText primary="Meus ingressos" />
+          </ListItemButton>
+          <ListItemButton onClick={() => handleNavigateHash('como-funciona')}>
+            <ListItemIcon>
+              <EmojiEmotionsRounded />
+            </ListItemIcon>
+            <ListItemText primary="Como funciona" />
+          </ListItemButton>
+          <ListItemButton onClick={() => handleNavigateHash('criar-evento')}>
+            <ListItemIcon>
+              <AddRounded />
+            </ListItemIcon>
+            <ListItemText primary="Criar evento" />
           </ListItemButton>
           {user ? (
             <ListItemButton onClick={() => handleNavigate('/profile')}>
