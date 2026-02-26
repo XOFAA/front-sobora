@@ -69,7 +69,12 @@ function OtpInput({ length = 6, value, onChange }) {
             inputMode: 'numeric',
             pattern: '[0-9]*',
             maxLength: 1,
-            style: { textAlign: 'center', fontSize: 20, fontWeight: 700 },
+            style: { textAlign: 'center', fontSize: 18, lineHeight: 1.2, fontWeight: 700 },
+          }}
+          sx={{
+            '& .MuiInputBase-input': {
+              py: { xs: 1.25, sm: 1.5 },
+            },
           }}
         />
       ))}

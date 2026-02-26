@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Button,
@@ -19,7 +19,7 @@ import {
 import PhoneIphoneRounded from '@mui/icons-material/PhoneIphoneRounded'
 import EmailRounded from '@mui/icons-material/EmailRounded'
 import BadgeRounded from '@mui/icons-material/BadgeRounded'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import PhoneWithCountryField from '../components/inputs/PhoneWithCountryField'
 import {
@@ -36,6 +36,7 @@ import {
 function AuthPage() {
   const { register, requestCode } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [tab, setTab] = useState(0)
   const [loginMethod, setLoginMethod] = useState('phone')
   const [loginInput, setLoginInput] = useState({
@@ -44,7 +45,6 @@ function AuthPage() {
     phone: '',
     countryIso2: 'BR',
   })
-  const [registerLoginMethod, setRegisterLoginMethod] = useState('phone')
   const [registerForm, setRegisterForm] = useState({
     name: '',
     email: '',
@@ -54,8 +54,26 @@ function AuthPage() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [requestingCode, setRequestingCode] = useState(false)
+  const [registering, setRegistering] = useState(false)
+  const redirectState = useMemo(() => {
+    if (location.state?.from?.state) return location.state.from.state
+    try {
+      return JSON.parse(sessionStorage.getItem('post_login_redirect_state') || 'null')
+    } catch {
+      return null
+    }
+  }, [location.state?.from?.state])
+  const redirectTo = location.state?.from?.pathname || sessionStorage.getItem('post_login_redirect_to') || '/'
+
+  useEffect(() => {
+    if (!location.state?.from?.pathname) return
+    sessionStorage.setItem('post_login_redirect_to', location.state.from.pathname)
+    sessionStorage.setItem('post_login_redirect_state', JSON.stringify(location.state.from.state || null))
+  }, [location.state?.from?.pathname, location.state?.from?.state])
 
   const handleRequestCode = async () => {
+    if (requestingCode) return
     setError('')
     setSuccess('')
 
@@ -76,16 +94,20 @@ function AuthPage() {
       return
     }
     try {
+      setRequestingCode(true)
       await requestCode(identifier)
       sessionStorage.setItem('login_identifier', identifier)
       sessionStorage.setItem('login_identifier_label', identifierLabel)
-      navigate('/login/code', { state: { identifier, identifierLabel } })
+      navigate('/login/code', { state: { identifier, identifierLabel, redirectTo, redirectState } })
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao enviar codigo.')
+    } finally {
+      setRequestingCode(false)
     }
   }
 
   const handleRegister = async () => {
+    if (registering) return
     setError('')
     setSuccess('')
     if (!validatePhoneLocalLength(registerForm.phone, registerForm.countryIso2)) {
@@ -108,6 +130,7 @@ function AuthPage() {
       return
     }
     try {
+      setRegistering(true)
       await register(payload)
       const fallbackInput = {
         email: payload.email,
@@ -115,10 +138,11 @@ function AuthPage() {
         phone: registerForm.phone,
         countryIso2: registerForm.countryIso2,
       }
-      const identifier = buildLoginIdentifier(registerLoginMethod, fallbackInput)
-      const identifierLabel = getIdentifierLabel(registerLoginMethod, fallbackInput)
+      const registerCodeMethod = 'email'
+      const identifier = buildLoginIdentifier(registerCodeMethod, fallbackInput)
+      const identifierLabel = getIdentifierLabel(registerCodeMethod, fallbackInput)
       await requestCode(identifier)
-      setLoginMethod(registerLoginMethod)
+      setLoginMethod(registerCodeMethod)
       setLoginInput((prev) => ({
         ...prev,
         email: payload.email,
@@ -128,9 +152,11 @@ function AuthPage() {
       }))
       sessionStorage.setItem('login_identifier', identifier)
       sessionStorage.setItem('login_identifier_label', identifierLabel)
-      navigate('/login/code', { state: { identifier, identifierLabel } })
+      navigate('/login/code', { state: { identifier, identifierLabel, redirectTo, redirectState } })
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao cadastrar.')
+    } finally {
+      setRegistering(false)
     }
   }
 
@@ -206,8 +232,8 @@ function AuthPage() {
               ) : null}
               {error ? <Alert severity="error">{error}</Alert> : null}
               {success ? <Alert severity="success">{success}</Alert> : null}
-              <Button variant="contained" onClick={handleRequestCode}>
-                Enviar codigo
+              <Button variant="contained" onClick={handleRequestCode} disabled={requestingCode}>
+                {requestingCode ? 'Enviando...' : 'Enviar codigo'}
               </Button>
             </Stack>
           ) : (
@@ -237,35 +263,7 @@ function AuthPage() {
                 }
                 label="Telefone"
               />
-              <FormControl fullWidth>
-                <InputLabel id="register-login-method-label">Receber codigo por</InputLabel>
-                <Select
-                  labelId="register-login-method-label"
-                  value={registerLoginMethod}
-                  label="Receber codigo por"
-                  onChange={(event) => setRegisterLoginMethod(event.target.value)}
-                >
-                  <MenuItem value="phone">
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <PhoneIphoneRounded fontSize="small" />
-                      <Typography>Telefone</Typography>
-                    </Stack>
-                  </MenuItem>
-                  <MenuItem value="email">
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <EmailRounded fontSize="small" />
-                      <Typography>Email</Typography>
-                    </Stack>
-                  </MenuItem>
-                  <MenuItem value="cpf">
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <BadgeRounded fontSize="small" />
-                      <Typography>CPF</Typography>
-                    </Stack>
-                  </MenuItem>
-                </Select>
-              </FormControl>
-      
+
               <TextField
                 label="CPF"
                 value={formatCpf(registerForm.cpf)}
@@ -275,8 +273,8 @@ function AuthPage() {
               />
               {error ? <Alert severity="error">{error}</Alert> : null}
               {success ? <Alert severity="success">{success}</Alert> : null}
-              <Button variant="contained" onClick={handleRegister}>
-                Criar conta
+              <Button variant="contained" onClick={handleRegister} disabled={registering}>
+                {registering ? 'Criando conta...' : 'Criar conta'}
               </Button>
             </Stack>
           )}

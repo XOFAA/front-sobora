@@ -26,10 +26,23 @@ function LoginCodePage() {
   const [identifierLabel] = useState(() => {
     return location.state?.identifierLabel || sessionStorage.getItem('login_identifier_label') || ''
   })
+  const [redirectTo] = useState(() => {
+    return location.state?.redirectTo || sessionStorage.getItem('post_login_redirect_to') || '/'
+  })
+  const [redirectState] = useState(() => {
+    if (location.state?.redirectState) return location.state.redirectState
+    try {
+      return JSON.parse(sessionStorage.getItem('post_login_redirect_state') || 'null')
+    } catch {
+      return null
+    }
+  })
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [resendLeft, setResendLeft] = useState(RESEND_SECONDS)
+  const [loggingIn, setLoggingIn] = useState(false)
+  const [resendingCode, setResendingCode] = useState(false)
 
   useEffect(() => {
     if (location.state?.identifier) {
@@ -38,7 +51,13 @@ function LoginCodePage() {
     if (location.state?.identifierLabel) {
       sessionStorage.setItem('login_identifier_label', location.state.identifierLabel)
     }
-  }, [location.state?.identifier, location.state?.identifierLabel])
+    if (location.state?.redirectTo) {
+      sessionStorage.setItem('post_login_redirect_to', location.state.redirectTo)
+    }
+    if (location.state?.redirectState) {
+      sessionStorage.setItem('post_login_redirect_state', JSON.stringify(location.state.redirectState))
+    }
+  }, [location.state?.identifier, location.state?.identifierLabel, location.state?.redirectTo, location.state?.redirectState])
 
   useEffect(() => {
     if (resendLeft <= 0) return undefined
@@ -49,6 +68,7 @@ function LoginCodePage() {
   }, [resendLeft])
 
   const handleLogin = async () => {
+    if (loggingIn) return
     setError('')
     setSuccess('')
     if (code.length < 6) {
@@ -56,15 +76,22 @@ function LoginCodePage() {
       return
     }
     try {
+      setLoggingIn(true)
       await login(identifier, code)
       sessionStorage.removeItem('login_identifier')
-      navigate('/')
+      sessionStorage.removeItem('login_identifier_label')
+      sessionStorage.removeItem('post_login_redirect_to')
+      sessionStorage.removeItem('post_login_redirect_state')
+      navigate(redirectTo || '/', { replace: true, state: redirectState || undefined })
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao entrar.')
+    } finally {
+      setLoggingIn(false)
     }
   }
 
   const handleResend = async () => {
+    if (resendingCode) return
     setError('')
     setSuccess('')
     if (!identifier) {
@@ -72,11 +99,14 @@ function LoginCodePage() {
       return
     }
     try {
+      setResendingCode(true)
       await requestCode(identifier)
       setSuccess('Codigo reenviado. Verifique seu email ou WhatsApp.')
       setResendLeft(RESEND_SECONDS)
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao reenviar codigo.')
+    } finally {
+      setResendingCode(false)
     }
   }
 
@@ -103,16 +133,20 @@ function LoginCodePage() {
             <Button
               variant="contained"
               onClick={handleLogin}
-              sx={{ py: 1.1, fontSize: 26, fontWeight: 800, textTransform: 'none' }}
+              disabled={loggingIn}
+              sx={{ py: 1.1, fontSize: { xs: 18, sm: 22 }, fontWeight: 800, textTransform: 'none' }}
             >
-              Validar Codigo
+              {loggingIn ? 'Validando...' : 'Validar Codigo'}
             </Button>
             <Divider />
             <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
-              <Button variant="text" onClick={() => navigate('/login')}>
+              <Button
+                variant="text"
+                onClick={() => navigate('/login', { state: { from: { pathname: redirectTo, state: redirectState } } })}
+              >
                 Editar contato
               </Button>
-              <Button variant="text" onClick={handleResend} disabled={resendLeft > 0}>
+              <Button variant="text" onClick={handleResend} disabled={resendLeft > 0 || resendingCode}>
                 {resendLeft > 0 ? `Reenviar em ${resendLeft}s` : 'Reenviar codigo'}
               </Button>
             </Stack>

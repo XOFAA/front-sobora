@@ -6,6 +6,8 @@ import {
   Card,
   CardContent,
   Divider,
+  Dialog,
+  DialogContent,
   FormControl,
   FormControlLabel,
   Radio,
@@ -17,6 +19,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import CheckRounded from '@mui/icons-material/CheckRounded'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
@@ -34,7 +37,7 @@ function CheckoutPage() {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [resultOpen, setResultOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('credit')
   const [buyer, setBuyer] = useState({
     name: user?.name || '',
@@ -76,7 +79,6 @@ function CheckoutPage() {
 
   const handleConfirm = async () => {
     setError('')
-    setSuccess('')
     setLoading(true)
     try {
       const payload = items.map((item) => ({
@@ -85,8 +87,8 @@ function CheckoutPage() {
         isHalf: item.isHalf,
       }))
       await createOrder(payload)
-      setSuccess('Estamos processando sua compra.')
       setStep(STEPS.length - 1)
+      setResultOpen(true)
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao finalizar o pedido.')
     } finally {
@@ -281,44 +283,13 @@ function CheckoutPage() {
 
       {error ? <Alert severity="error">{error}</Alert> : null}
 
-      {success ? (
-        <Card>
-          <CardContent>
-            <Stack spacing={2} alignItems="center">
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  bgcolor: '#DCFCE7',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: '#16A34A',
-                  fontSize: 28,
-                  fontWeight: 700,
-                }}
-              >
-                ✓
-              </Box>
-              <Stack spacing={0.5} alignItems="center">
-                <Typography fontWeight={700}>Estamos processando sua compra</Typography>
-                <Typography variant="body2" color="text.secondary" align="center">
-                  Assim que o pagamento for confirmado, seus ingressos aparecem automaticamente.
-                </Typography>
-              </Stack>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <Button variant="contained" onClick={() => navigate('/tickets')}>
-                  Ver meus ingressos
-                </Button>
-                <Button variant="outlined" onClick={() => navigate('/')}>
-                  Voltar para eventos
-                </Button>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
-      ) : (
-        <Stack direction="row" spacing={2} justifyContent="space-between">
+      {!resultOpen ? (
+        <Stack
+          direction="row"
+          spacing={2}
+          justifyContent="space-between"
+          sx={{ pt: 1, pb: { xs: `calc(16px + env(safe-area-inset-bottom))`, sm: 0 } }}
+        >
           <Button variant="text" onClick={step === 0 ? () => navigate(-1) : goBack}>
             Voltar
           </Button>
@@ -332,9 +303,43 @@ function CheckoutPage() {
             </Button>
           )}
         </Stack>
-      )}
+      ) : null}
+
+      <Dialog open={resultOpen} onClose={() => {}} disableEscapeKeyDown maxWidth="md" fullWidth>
+        <DialogContent sx={{ py: { xs: 4, md: 5 } }}>
+          <Stack spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                bgcolor: '#DCFCE7',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#16A34A',
+                fontSize: 32,
+                fontWeight: 700,
+              }}
+            >
+              <CheckRounded fontSize="large" />
+            </Box>
+            <Stack spacing={0.5} alignItems="center">
+              <Typography fontWeight={700} textAlign="center">
+                Estamos processando sua compra
+              </Typography>
+              <Typography variant="body2" color="text.secondary" align="center">
+                Assim que o pagamento for confirmado, seus ingressos aparecem automaticamente.
+              </Typography>
+            </Stack>
+            <Button variant="contained" onClick={() => navigate('/tickets', { replace: true })}>
+              Ver meus ingressos
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Stack>
   )
 }
 
 export default CheckoutPage
+
