@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, InputAdornment, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { Card, CardContent, Chip } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import SearchRounded from '@mui/icons-material/SearchRounded'
@@ -237,20 +237,6 @@ function HomePage() {
             placeholder="Buscar eventos, cidades ou temas..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                    <Button
-                      size="small"
-                      variant="contained"
-                      sx={{ borderRadius: '10px', px: 1.5, py: 0.4, minWidth: 0, fontSize: '0.75rem' }}
-                      startIcon={<SearchRounded sx={{ fontSize: 14 }} />}
-                    >
-                      Buscar
-                    </Button>
-                </InputAdornment>
-              ),
-            }}
           />
         </Box>
       </Box>
@@ -528,6 +514,7 @@ function HomePage() {
             borderRadius: "10px",
             px: 3,
             py: 1,
+            mb:3,
             background: 'linear-gradient(135deg, #6b4cd6 0%, #5640b3 100%)',
           }}
         >
