@@ -1,8 +1,11 @@
-import {
+﻿import {
+  Alert,
   AppBar,
   Box,
   Button,
   Container,
+  Dialog,
+  DialogContent,
   Drawer,
   IconButton,
   List,
@@ -11,7 +14,7 @@ import {
   ListItemText,
   Stack,
   Toolbar,
-  Alert,
+  Typography,
 } from '@mui/material'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -23,6 +26,9 @@ import LogoutRounded from '@mui/icons-material/LogoutRounded'
 import AccountCircleRounded from '@mui/icons-material/AccountCircleRounded'
 import EmojiEmotionsRounded from '@mui/icons-material/EmojiEmotionsRounded'
 import AddRounded from '@mui/icons-material/AddRounded'
+import CameraswitchRounded from '@mui/icons-material/CameraswitchRounded'
+import InfoRounded from '@mui/icons-material/InfoRounded'
+import PersonOutlineRounded from '@mui/icons-material/PersonOutlineRounded'
 import { useState } from 'react'
 import { keyframes } from '@emotion/react'
 import Footer from './Footer'
@@ -37,6 +43,7 @@ function MainLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [faceModalOpen, setFaceModalOpen] = useState(false)
 
   const closeMobile = () => setMobileOpen(false)
   const handleNavigate = (path) => {
@@ -51,6 +58,7 @@ function MainLayout() {
     logout()
     closeMobile()
   }
+  const handleOpenFaceModal = () => setFaceModalOpen(true)
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
@@ -192,9 +200,10 @@ function MainLayout() {
         {user && user?.faceEnrollment?.status !== 'VERIFIED' ? (
           <Alert
             severity="info"
-            sx={{ mb: 3, display: 'flex', alignItems: 'center' }}
+            onClick={handleOpenFaceModal}
+            sx={{ mb: 3, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
             action={(
-              <Button color="inherit" size="small" onClick={() => navigate('/face-enroll')}>
+              <Button color="inherit" size="small" onClick={handleOpenFaceModal}>
                 Fazer cadastro facial
               </Button>
             )}
@@ -204,6 +213,38 @@ function MainLayout() {
         ) : null}
         <Outlet />
       </Container>
+
+      <Dialog open={faceModalOpen} onClose={() => setFaceModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
+          <Stack spacing={2} alignItems="center">
+            <Box component="img" src="/assets/logo-lilas.svg" alt="Sobora" sx={{ width: 210 }} />
+            <Typography variant="h4" fontWeight={700} textAlign="center">Cadastro facial 📸</Typography>
+            <Typography textAlign="center" color="text.secondary" sx={{ maxWidth: 520 }}>
+              Inicie o cadastro para abrir a câmera em tela cheia com guia visual e orientações em tempo real.
+            </Typography>
+            <Alert icon={<InfoRounded fontSize="inherit" />} severity="info" sx={{ width: '100%', borderRadius: '10px' }}>
+              Modelos carregados. Clique no botão abaixo para abrir a câmera
+            </Alert>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary', width: '100%' }}>
+              <PersonOutlineRounded fontSize="small" />
+              <Typography>Usuário: {user?.name} | {user?.email}</Typography>
+            </Stack>
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<CameraswitchRounded />}
+              onClick={() => {
+                setFaceModalOpen(false)
+                navigate('/face-enroll')
+              }}
+              sx={{ borderRadius: '12px', py: 1.3 }}
+            >
+              Iniciar cadastro facial
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
       <Box sx={{ mt: 'auto' }}>
         <Footer />
       </Box>

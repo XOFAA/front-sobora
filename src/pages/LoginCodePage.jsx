@@ -1,20 +1,63 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import {
   Alert,
   Box,
   Button,
   Card,
-  CardContent,
   Container,
   Divider,
   Stack,
   Typography,
 } from '@mui/material'
+import CheckRounded from '@mui/icons-material/CheckRounded'
+import AccessTimeFilledRounded from '@mui/icons-material/AccessTimeFilledRounded'
+import EditRounded from '@mui/icons-material/EditRounded'
+import ForwardToInboxRounded from '@mui/icons-material/ForwardToInboxRounded'
+import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import OtpInput from '../components/auth/OtpInput'
 
 const RESEND_SECONDS = 30
+
+function LeftPanel() {
+  return (
+    <Box
+      sx={{
+        display: { xs: 'none', md: 'block' },
+        bgcolor: '#5b45b2',
+        background: 'linear-gradient(180deg, #6d4ce7 0%, #4a3b89 100%)',
+        color: '#fff',
+        p: { xs: 3, md: 4 },
+        height: '100%',
+      }}
+    >
+      <Stack spacing={2.5}>
+        <Box component="img" src="/assets/sobora-logo.svg" alt="Sobora" sx={{ width: 160 }} />
+        <Typography variant="h4" fontWeight={700} sx={{ lineHeight: 1.25, maxWidth: 360 }}>
+          Bem-vindo ao melhor marketplace de eventos culturais do Brasil
+        </Typography>
+        <Typography sx={{ color: 'rgba(255,255,255,0.86)', maxWidth: 380 }}>
+          Compre ingressos para os melhores shows, peças de teatro e eventos educativos, ou venda seus próprios eventos para milhares de pessoas.
+        </Typography>
+        <Stack spacing={1.6} sx={{ pt: 0.8 }}>
+          <Stack direction="row" spacing={1.2} alignItems="center">
+            <CheckRounded sx={{ fontSize: 18 }} />
+            <Typography>Compra 100% segura com recursos antifraude</Typography>
+          </Stack>
+          <Stack direction="row" spacing={1.2} alignItems="center">
+            <CheckRounded sx={{ fontSize: 18 }} />
+            <Typography>Parcele a compra de seus ingressos em até 12x*</Typography>
+          </Stack>
+          <Stack direction="row" spacing={1.2} alignItems="center">
+            <CheckRounded sx={{ fontSize: 18 }} />
+            <Typography>Canais de suporte disponíveis 24 horas</Typography>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Box>
+  )
+}
 
 function LoginCodePage() {
   const { login, requestCode } = useAuth()
@@ -72,7 +115,7 @@ function LoginCodePage() {
     setError('')
     setSuccess('')
     if (code.length < 6) {
-      setError('Digite o codigo de 6 digitos.')
+      setError('Digite o código de 6 dígitos.')
       return
     }
     try {
@@ -101,60 +144,70 @@ function LoginCodePage() {
     try {
       setResendingCode(true)
       await requestCode(identifier)
-      setSuccess('Codigo reenviado. Verifique seu email ou WhatsApp.')
+      setSuccess('Código reenviado. Verifique seu e-mail ou WhatsApp.')
       setResendLeft(RESEND_SECONDS)
     } catch (err) {
-      setError(err?.response?.data?.message || 'Falha ao reenviar codigo.')
+      setError(err?.response?.data?.message || 'Falha ao reenviar código.')
     } finally {
       setResendingCode(false)
     }
   }
 
+  const timerLabel = `${String(Math.floor(resendLeft / 60)).padStart(2, '0')}:${String(resendLeft % 60).padStart(2, '0')}`
+
   return (
-    <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Card sx={{ borderRadius: 4, boxShadow: '0 16px 44px rgba(16,24,40,0.12)' }}>
-        <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-          <Stack spacing={2.5}>
-            <Box>
-              <Typography variant="h4" fontWeight={800} gutterBottom textAlign="center">
-                Validar <Box component="span" sx={{ color: '#5b3fc4' }}>Codigo</Box>
-              </Typography>
-              <Typography color="text.secondary" textAlign="center">
-                Acabamos de enviar um codigo de validacao para <b>{identifierLabel || identifier || 'seu contato'}</b>.
-                {' '}Por favor, digite o codigo abaixo:
-              </Typography>
-            </Box>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 24px 44px rgba(15,23,42,0.16)' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.02fr 1fr' } }}>
+          <LeftPanel />
+          <Box sx={{ p: { xs: 2.2, md: 3.8 }, bgcolor: '#fff' }}>
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="h5" fontWeight={700}>Verificação em duas etapas 📩</Typography>
+                <Typography color="text.secondary">
+                  Por segurança, enviamos um código de verificação para o e-mail: <b>{identifierLabel || identifier || 'seu contato'}</b>
+                </Typography>
+              </Box>
 
-            <OtpInput length={6} value={code} onChange={setCode} />
+              <Box sx={{
+                '& .MuiInputBase-root': { borderRadius: '10px', bgcolor: '#f4f1fb' },
+              }}>
+                <OtpInput length={6} value={code} onChange={setCode} />
+              </Box>
 
-            {error ? <Alert severity="error">{error}</Alert> : null}
-            {success ? <Alert severity="success">{success}</Alert> : null}
+              {error ? <Alert severity="error">{error}</Alert> : null}
+              {success ? <Alert severity="success">{success}</Alert> : null}
 
-            <Button
-              variant="contained"
-              onClick={handleLogin}
-              disabled={loggingIn}
-              sx={{ py: 1.1, fontSize: { xs: 18, sm: 22 }, fontWeight: 800, textTransform: 'none' }}
-            >
-              {loggingIn ? 'Validando...' : 'Validar Codigo'}
-            </Button>
-            <Divider />
-            <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
-              <Button
-                variant="text"
-                onClick={() => navigate('/login', { state: { from: { pathname: redirectTo, state: redirectState } } })}
-              >
-                Editar contato
+              <Button variant="contained" onClick={handleLogin} disabled={loggingIn} sx={{ borderRadius: '10px', py: 1.2 }}>
+                {loggingIn ? 'Validando...' : 'Validar código'}
               </Button>
-              <Button variant="text" onClick={handleResend} disabled={resendLeft > 0 || resendingCode}>
-                {resendLeft > 0 ? `Reenviar em ${resendLeft}s` : 'Reenviar codigo'}
+
+              <Stack direction="row" spacing={0.8} justifyContent="center" alignItems="center">
+                <AccessTimeFilledRounded sx={{ fontSize: 16, color: '#6d4ce7' }} />
+                <Typography sx={{ color: '#6d4ce7', fontWeight: 700 }}>{timerLabel}</Typography>
+                <Typography color="text.secondary">para reenviar</Typography>
+              </Stack>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
+                <Button variant="text" startIcon={<EditRounded />} onClick={() => navigate('/login', { state: { from: { pathname: redirectTo, state: redirectState } } })}>
+                  Editar cadastro
+                </Button>
+                <Button variant="text" startIcon={<ForwardToInboxRounded />} onClick={handleResend} disabled={resendLeft > 0 || resendingCode}>
+                  Reenviar código
+                </Button>
+              </Stack>
+
+              <Button variant="outlined" onClick={() => navigate('/login')} startIcon={<ArrowBackRounded />} sx={{ borderRadius: '10px' }}>
+                Voltar ao login
               </Button>
+              <Divider />
+              <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+                <Typography color="text.secondary">Não tem mais acesso aos dados de cadastro?</Typography>
+                <Button variant="text" sx={{ textTransform: 'none', fontWeight: 700 }}>Clique aqui</Button>
+              </Stack>
             </Stack>
-            <Typography textAlign="center" color="text.secondary" sx={{ pt: 1 }}>
-              não tem mais acesso ao e-mail?
-            </Typography>
-          </Stack>
-        </CardContent>
+          </Box>
+        </Box>
       </Card>
     </Container>
   )

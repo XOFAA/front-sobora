@@ -157,7 +157,7 @@ function HomePage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [eventsCategory, setEventsCategory] = useState('ALL')
-  const [minPriceByEventId, setMinPriceByEventId] = useState({})
+  const [ticketMetaByEventId, setTicketMetaByEventId] = useState({})
 
   useEffect(() => {
     if (!location.hash) return
@@ -183,15 +183,39 @@ function HomePage() {
         const map = (ticketTypesData || []).reduce((acc, ticket) => {
           const eventId = ticket?.eventId
           const price = typeof ticket?.price === 'number' ? ticket.price : null
-          if (!eventId || price == null || price <= 0) return acc
-          const current = acc[eventId]
-          acc[eventId] = current == null ? price : Math.min(current, price)
+          if (!eventId || price == null) return acc
+
+          const current = acc[eventId] || {
+            minPaidPrice: null,
+            hasPaid: false,
+            hasFree: false,
+            freeLimitPerUser: null,
+          }
+
+          if (price > 0) {
+            current.hasPaid = true
+            current.minPaidPrice =
+              current.minPaidPrice == null ? price : Math.min(current.minPaidPrice, price)
+          } else {
+            current.hasFree = true
+            const freeLimit = Number.isInteger(ticket?.maxFreePerUser) && ticket.maxFreePerUser > 0
+              ? ticket.maxFreePerUser
+              : null
+            if (freeLimit != null) {
+              current.freeLimitPerUser =
+                current.freeLimitPerUser == null
+                  ? freeLimit
+                  : Math.min(current.freeLimitPerUser, freeLimit)
+            }
+          }
+
+          acc[eventId] = current
           return acc
         }, {})
-        setMinPriceByEventId(map)
+        setTicketMetaByEventId(map)
       } catch {
         if (active) setEvents([])
-        if (active) setMinPriceByEventId({})
+        if (active) setTicketMetaByEventId({})
       } finally {
         if (active) setLoading(false)
       }
@@ -275,7 +299,7 @@ function HomePage() {
             Mais eventos
           </Typography>
           <Typography color="text.secondary">
-            Descubra os melhores eventos culturais e outros formatos que estao por vir.
+            Descubra os melhores eventos culturais e outros formatos que estão por vir.
           </Typography>
         </Stack>
 
@@ -329,7 +353,18 @@ function HomePage() {
               const categoryKey = resolveEventCategory(event)
               const categoryLabel =
                 EVENT_CATEGORIES.find((item) => item.key === categoryKey)?.label || 'Evento'
-              const minPrice = minPriceByEventId[event.id]
+              const ticketMeta = ticketMetaByEventId[event.id] || {}
+              const isFreeOnly = Boolean(ticketMeta.hasFree) && !Boolean(ticketMeta.hasPaid)
+              const minPrice = ticketMeta.minPaidPrice
+              const freeLimit = ticketMeta.freeLimitPerUser
+              const priceLabel = isFreeOnly
+                ? 'Gratuito'
+                : getEventMinPriceLabel(event, minPrice)
+              const priceCaption = isFreeOnly ? 'Ingresso' : 'Ingressos a partir de'
+              const freeLimitLabel =
+                isFreeOnly && freeLimit
+                  ? `Resgate de ate ${freeLimit} por usuario`
+                  : null
 
               return (
                 <Grid key={event.id} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -398,11 +433,16 @@ function HomePage() {
                             <ConfirmationNumberRounded fontSize="small" sx={{ color: '#9ca3af' }} />
                             <Stack spacing={0} alignItems="flex-start">
                               <Typography variant="caption" color="text.secondary">
-                                Ingressos a partir de
+                                {priceCaption}
                               </Typography>
                               <Typography fontWeight={700} sx={{ color: '#6d4ce7' }}>
-                                {getEventMinPriceLabel(event, minPrice)}
+                                {priceLabel}
                               </Typography>
+                              {freeLimitLabel ? (
+                                <Typography variant="caption" color="text.secondary">
+                                  {freeLimitLabel}
+                                </Typography>
+                              ) : null}
                             </Stack>
                           </Stack>
                           <Button
@@ -417,7 +457,7 @@ function HomePage() {
                               '&:hover': { bgcolor: '#5a3fd6' },
                             }}
                           >
-                            Comprar
+                            {isFreeOnly ? 'Resgatar' : 'Comprar'}
                           </Button>
                         </Stack>
                       </Stack>

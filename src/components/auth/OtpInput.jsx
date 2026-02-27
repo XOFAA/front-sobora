@@ -72,6 +72,10 @@ function OtpInput({ length = 6, value, onChange }) {
             style: { textAlign: 'center', fontSize: 18, lineHeight: 1.2, fontWeight: 700 },
           }}
           sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '10px',
+              backgroundColor: '#f4f1fb',
+            },
             '& .MuiInputBase-input': {
               py: { xs: 1.25, sm: 1.5 },
             },

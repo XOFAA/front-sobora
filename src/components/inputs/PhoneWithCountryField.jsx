@@ -40,6 +40,7 @@ function PhoneWithCountryField({
               </Stack>
             )
           }}
+          sx={{ borderRadius: '10px', backgroundColor: '#f4f1fb' }}
         >
           {COUNTRY_OPTIONS.map((country) => (
             <MenuItem key={country.iso2} value={country.iso2}>
@@ -63,7 +64,7 @@ function PhoneWithCountryField({
       </FormControl>
       <TextField
         fullWidth
-        sx={{ flex: 1, minWidth: 0 }}
+        sx={{ flex: 1, minWidth: 0, '& .MuiOutlinedInput-root': { borderRadius: '10px', backgroundColor: '#f4f1fb' } }}
         label={label}
         value={formatPhoneByCountry(phone, selectedCountry.iso2)}
         onChange={(event) => onPhoneChange(onlyDigits(event.target.value))}

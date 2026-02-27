@@ -70,11 +70,11 @@ function FaceEnrollPage() {
         ])
         if (mounted) {
           setModelsReady(true)
-          setHint('Modelos carregados. Inicie o cadastro para abrir a camera.')
+          setHint('Modelos carregados. Inicie o cadastro para abrir a câmera.')
         }
       } catch (err) {
         if (mounted) {
-          setStatus({ type: 'error', message: err?.message || 'Nao foi possivel carregar os modelos faciais.' })
+          setStatus({ type: 'error', message: err?.message || 'Não foi possível carregar os modelos faciais.' })
         }
       } finally {
         if (mounted) setLoading(false)
@@ -101,7 +101,7 @@ function FaceEnrollPage() {
       )
       if (!detection) {
         setFaceAligned(false)
-        setHint('Aproxime seu rosto da camera.')
+        setHint('Aproxime seu rosto da câmera.')
         return
       }
       const { box } = detection
@@ -143,7 +143,7 @@ function FaceEnrollPage() {
     setLivenessScore(null)
     setCaptureProgress(0)
     setSessionActive(true)
-    setHint('Liberando camera...')
+    setHint('Liberando câmera...')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: 720, height: 540 },
@@ -158,7 +158,7 @@ function FaceEnrollPage() {
       setHint('Aproxime e centralize o rosto no quadro.')
     } catch {
       setSessionActive(false)
-      setStatus({ type: 'error', message: 'Nao foi possivel acessar a camera.' })
+      setStatus({ type: 'error', message: 'Não foi possível acessar a câmera.' })
     }
   }
 
@@ -205,7 +205,7 @@ function FaceEnrollPage() {
     try {
       captureLockRef.current = true
       setLoading(true)
-      setHint('Capturando, nao se mexa.')
+      setHint('Capturando, não se mexa.')
       const samples = []
       for (let i = 0; i < 8; i += 1) {
         const shot = await captureDescriptor()
@@ -214,7 +214,7 @@ function FaceEnrollPage() {
         await new Promise((resolve) => setTimeout(resolve, 250))
       }
       if (samples.length < 2) {
-        setStatus({ type: 'error', message: 'Nao foi possivel detectar o rosto. Tente novamente.' })
+        setStatus({ type: 'error', message: 'Não foi possível detectar o rosto. Tente novamente.' })
         return
       }
       const ordered = [...samples].sort((a, b) => b.detection.score - a.detection.score)
@@ -261,7 +261,7 @@ function FaceEnrollPage() {
               Cadastro facial concluido
             </Typography>
             <Typography color="text.secondary" sx={{ maxWidth: 560 }}>
-              Seu perfil facial foi salvo. No dia do evento, voce podera usar a fila de reconhecimento facial.
+              Seu perfil facial foi salvo. No dia do evento, você poderá usar a fila de reconhecimento facial.
             </Typography>
             {livenessScore !== null ? (
               <Chip color="success" label={`Liveness score: ${livenessScore}`} />
@@ -289,7 +289,7 @@ function FaceEnrollPage() {
               Cadastro facial
             </Typography>
             <Typography color="text.secondary">
-              Inicie o cadastro para abrir a camera em tela cheia com guia visual e orientacoes em tempo real.
+              Inicie o cadastro para abrir a câmera em tela cheia com guia visual e orientações em tempo real.
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2}>
               <Button variant="contained" disabled={!modelsReady || loading} onClick={startCameraSession}>
@@ -299,7 +299,7 @@ function FaceEnrollPage() {
             <Alert severity="info">{hint}</Alert>
             {status.message ? <Alert severity={status.type || 'info'}>{status.message}</Alert> : null}
             <Typography variant="caption" color="text.secondary">
-              Usuario: {user?.name} | {user?.email}
+              Usuário: {user?.name} | {user?.email}
             </Typography>
           </Stack>
         </CardContent>
@@ -409,7 +409,7 @@ function FaceEnrollPage() {
               <Chip
                 label={
                   loading
-                    ? 'Capturando, nao se mexa'
+                    ? 'Capturando, não se mexa'
                     : faceAligned
                       ? 'Rosto alinhado, captura automatica'
                       : 'Aguardando alinhamento'
@@ -417,7 +417,7 @@ function FaceEnrollPage() {
                 color={faceAligned ? 'success' : 'warning'}
               />
               <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                {loading ? 'Processando...' : 'Siga as orientacoes na tela'}
+                {loading ? 'Processando...' : 'Siga as orientações na tela'}
               </Typography>
             </Stack>
           </Box>

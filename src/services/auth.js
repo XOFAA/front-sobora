@@ -24,3 +24,13 @@ export async function updateMe(payload) {
   const { data } = await api.patch('/users/me', payload)
   return data
 }
+
+export async function requestProfileUpdateCode(payload) {
+  const { data } = await api.post('/users/me/update/request-code', payload)
+  return data
+}
+
+export async function confirmProfileUpdate(code) {
+  const { data } = await api.post('/users/me/update/confirm', { code })
+  return data
+}

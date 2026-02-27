@@ -13,9 +13,9 @@ function TransferAcceptPage() {
     try {
       const { code, ...payload } = form
       const data = await acceptTicketTransferByCode(code, payload)
-      setMessage(data?.message || 'Transferencia aceita com sucesso.')
+      setMessage(data?.message || 'Transferência aceita com sucesso.')
     } catch (err) {
-      setError(err?.response?.data?.message || 'Falha ao aceitar transferencia.')
+      setError(err?.response?.data?.message || 'Falha ao aceitar transferência.')
     }
   }
 
@@ -26,14 +26,14 @@ function TransferAcceptPage() {
           <Stack spacing={2}>
             <Box>
               <Typography variant="h5" fontWeight={700}>
-                Aceitar transferencia
+                Aceitar transferência
               </Typography>
               <Typography color="text.secondary">
-                Digite o codigo recebido e preencha seus dados para receber o ingresso.
+                Digite o código recebido e preencha seus dados para receber o ingresso.
               </Typography>
             </Box>
             <TextField
-              label="Codigo"
+              label="Código"
               value={form.code}
               onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))}
             />
@@ -55,7 +55,7 @@ function TransferAcceptPage() {
             {error ? <Alert severity="error">{error}</Alert> : null}
             {message ? <Alert severity="success">{message}</Alert> : null}
             <Button variant="contained" onClick={handleAccept}>
-              Confirmar transferencia
+              Confirmar transferência
             </Button>
           </Stack>
         </CardContent>

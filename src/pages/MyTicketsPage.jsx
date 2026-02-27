@@ -184,6 +184,12 @@ const formatDateTime = (value) => {
   return Number.isNaN(date.getTime()) ? 'Sem data' : date.toLocaleString('pt-BR')
 }
 
+const formatPriceOrFree = (value) => {
+  const amount = value ?? 0
+  if (amount === 0) return 'Gratuito'
+  return (amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
 function MyTicketsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -233,7 +239,7 @@ function MyTicketsPage() {
       setTransfersSent(transfersData || [])
       setOrders(ordersData || [])
     } catch {
-      setError('Nao foi possivel carregar seus ingressos.')
+      setError('Não foi possível carregar seus ingressos.')
     } finally {
       if (!silent) setLoading(false)
     }
@@ -366,6 +372,9 @@ function MyTicketsPage() {
   )
 
   const getPaymentLabel = (ticket) => {
+    if ((ticket.price ?? 0) === 0 && (ticket.paymentStatus === 'SUCCEEDED' || ticket.orderStatus === 'PAID')) {
+      return { label: 'Gratuito', color: 'info' }
+    }
     if (ticket.orderStatus === 'CANCELED') return { label: 'Cancelado', color: 'error' }
     if (ticket.paymentStatus === 'SUCCEEDED' || ticket.orderStatus === 'PAID') {
       return { label: 'Pago', color: 'success' }
@@ -374,8 +383,23 @@ function MyTicketsPage() {
     return { label: 'Pendente', color: 'warning' }
   }
 
+  const getOrderStatusLabel = (order) => {
+    if ((order.total ?? 0) === 0 && order.status === 'PAID') {
+      return { label: 'Gratuito', color: 'info' }
+    }
+    return {
+      label: order.status === 'PAID' ? 'Pago' : order.status,
+      color: order.status === 'PAID' ? 'success' : 'default',
+    }
+  }
+
+  const getOrderPaymentText = (order) => {
+    if ((order.total ?? 0) === 0) return 'Gratuito'
+    return order.paymentStatus || 'Não informado'
+  }
+
   const getUseLabel = (ticket) =>
-    ticket.used ? { label: 'Validado', color: 'success' } : { label: 'Nao validado', color: 'default' }
+    ticket.used ? { label: 'Validado', color: 'success' } : { label: 'Não validado', color: 'default' }
 
   const canShowQr = (ticket) =>
     (ticket.orderStatus === 'PAID' || ticket.paymentStatus === 'SUCCEEDED') &&
@@ -431,7 +455,7 @@ function MyTicketsPage() {
     try {
       if (!validatePhoneLocalLength(transferForm.phone, transferForm.countryIso2)) {
         const country = COUNTRY_OPTIONS.find((item) => item.iso2 === transferForm.countryIso2) || COUNTRY_OPTIONS[0]
-        setTransferMessage(`Telefone invalido para ${country.name}.`)
+        setTransferMessage(`Telefone inválido para ${country.name}.`)
         return
       }
       const payload = {
@@ -439,8 +463,8 @@ function MyTicketsPage() {
         message: transferForm.message,
       }
       const data = await requestTicketTransfer(selectedTicket.id, payload)
-      setTransferMessage(data?.message || 'Transferencia solicitada.')
-      setActionMessage(data?.message || 'Transferencia solicitada.')
+      setTransferMessage(data?.message || 'Transferência solicitada.')
+      setActionMessage(data?.message || 'Transferência solicitada.')
       setTransferCode(data?.transfer?.code || data?.code || '')
       await loadTickets(true)
     } catch (err) {
@@ -452,7 +476,7 @@ function MyTicketsPage() {
     setAcceptMessage('')
     setAcceptSuccess(false)
     if (!acceptForm.code) {
-      setAcceptMessage('Informe o codigo recebido.')
+      setAcceptMessage('Informe o código recebido.')
       return
     }
     setAcceptLoading(true)
@@ -464,9 +488,9 @@ function MyTicketsPage() {
         name: user?.name,
       }
       const data = await acceptTicketTransferByCode(acceptForm.code, payload)
-      setAcceptMessage(data?.message || 'Transferencia aceita com sucesso.')
+      setAcceptMessage(data?.message || 'Transferência aceita com sucesso.')
       setAcceptSuccess(true)
-      setActionMessage(data?.message || 'Transferencia aceita com sucesso.')
+      setActionMessage(data?.message || 'Transferência aceita com sucesso.')
       setAcceptForm((prev) => ({ ...prev, code: '' }))
       await loadTickets(true)
       setTab('ACTIVE')
@@ -474,7 +498,7 @@ function MyTicketsPage() {
         navigate('/tickets')
       }, 800)
     } catch (err) {
-      setAcceptMessage(err?.response?.data?.message || 'Falha ao aceitar transferencia.')
+      setAcceptMessage(err?.response?.data?.message || 'Falha ao aceitar transferência.')
     } finally {
       setAcceptLoading(false)
     }
@@ -483,9 +507,9 @@ function MyTicketsPage() {
   const handleCopyCode = async (code) => {
     try {
       await navigator.clipboard.writeText(code)
-      setActionMessage('Codigo copiado.')
+      setActionMessage('Código copiado.')
     } catch {
-      setActionMessage('Nao foi possivel copiar o codigo.')
+      setActionMessage('Não foi possível copiar o código.')
     }
   }
 
@@ -499,7 +523,7 @@ function MyTicketsPage() {
   const handleDownloadTransfersReport = () => {
     if (!transfersSent.length) return
     const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-    const title = 'Relatorio de transferencias'
+    const title = 'Relatório de transferências'
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(14)
     doc.text(title, 40, 40)
@@ -510,7 +534,7 @@ function MyTicketsPage() {
     const rows = transfersSent.map((transfer) => ([
       transfer.event?.name || 'Evento',
       transfer.ticketType?.name || 'Ingresso',
-      transfer.toUser?.name || transfer.toEmail || transfer.toPhone || 'Nao informado',
+      transfer.toUser?.name || transfer.toEmail || transfer.toPhone || 'Não informado',
       transfer.toPhone || '-',
       getTransferStatusLabel(transfer.status).label,
       formatDateTime(transfer.createdAt),
@@ -536,10 +560,10 @@ function MyTicketsPage() {
     setActionMessage('')
     try {
       const data = await cancelTicketTransfer(transferId)
-      setActionMessage(data?.message || 'Transferencia cancelada.')
+      setActionMessage(data?.message || 'Transferência cancelada.')
       await loadTickets(true)
     } catch (err) {
-      setActionMessage(err?.response?.data?.message || 'Falha ao cancelar transferencia.')
+      setActionMessage(err?.response?.data?.message || 'Falha ao cancelar transferência.')
     } finally {
       setCancelingTransferId('')
     }
@@ -658,16 +682,22 @@ function MyTicketsPage() {
                 <Card sx={{ borderRadius: '10px', border: '1px solid', borderColor: 'divider' }}>
                   <CardContent>
                     <Stack spacing={1.5}>
+                      {/** Status do pedido: pedidos gratuitos não devem aparecer como "Pago". */}
+                      {(() => {
+                        const orderStatusMeta = getOrderStatusLabel(order)
+                        return (
                       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                         <Typography fontWeight={700}>
                           {order.event?.name || 'Pedido'}
                         </Typography>
                         <Chip
                           size="small"
-                          label={order.status === 'PAID' ? 'Pago' : order.status}
-                          color={order.status === 'PAID' ? 'success' : 'default'}
+                          label={orderStatusMeta.label}
+                          color={orderStatusMeta.color}
                         />
                       </Stack>
+                        )
+                      })()}
                       <Typography variant="body2" color="text.secondary">
                         Pedido #{order.id}
                       </Typography>
@@ -675,10 +705,10 @@ function MyTicketsPage() {
                         Data da compra: {formatDateTime(order.createdAt)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Pagamento: {order.paymentStatus || 'Nao informado'}
+                        Pagamento: {getOrderPaymentText(order)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Total: {((order.total ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        Total: {formatPriceOrFree(order.total)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Ingressos: {order.ticketsCount}
@@ -690,7 +720,7 @@ function MyTicketsPage() {
             ))
           ) : (
             <Grid size={{ xs: 12 }}>
-              <Typography color="text.secondary">Voce ainda nao tem pedidos.</Typography>
+              <Typography color="text.secondary">Você ainda não tem pedidos.</Typography>
             </Grid>
           )}
         </Grid>
@@ -698,13 +728,13 @@ function MyTicketsPage() {
         <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between" alignItems={{ sm: 'center' }}>
-              <Typography fontWeight={600}>Transferencias enviadas</Typography>
+              <Typography fontWeight={600}>Transferências enviadas</Typography>
               <Button
                 variant="outlined"
                 onClick={handleDownloadTransfersReport}
                 disabled={!transfersSent.length}
               >
-                Baixar relatorio (PDF)
+                Baixar relatório (PDF)
               </Button>
             </Stack>
           </Grid>
@@ -747,7 +777,7 @@ function MyTicketsPage() {
                         Tipo: {transfer.ticketType?.name || 'Ingresso'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Destinatario: {transfer.toUser?.name || transfer.toEmail || transfer.toPhone || 'Nao informado'}
+                        Destinatário: {transfer.toUser?.name || transfer.toEmail || transfer.toPhone || 'Não informado'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Enviado em: {formatDateTime(transfer.createdAt)}
@@ -771,12 +801,12 @@ function MyTicketsPage() {
                       {transfer.status === 'PENDING' && transfer.code ? (
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Typography variant="caption" color="text.secondary">
-                            Codigo: {transfer.code}
+                            Código: {transfer.code}
                           </Typography>
                           <IconButton
                             size="small"
                             onClick={() => handleCopyCode(transfer.code)}
-                            aria-label="Copiar codigo"
+                            aria-label="Copiar código"
                           >
                             <ContentCopyRounded fontSize="small" />
                           </IconButton>
@@ -789,7 +819,7 @@ function MyTicketsPage() {
             ))
           ) : (
             <Grid size={{ xs: 12 }}>
-              <Typography color="text.secondary">Voce ainda nao transferiu ingressos.</Typography>
+              <Typography color="text.secondary">Você ainda não transferiu ingressos.</Typography>
             </Grid>
           )}
         </Grid>
@@ -876,7 +906,7 @@ function MyTicketsPage() {
                                   {ticket.type}
                                 </Typography>
                                   <Typography variant="body2" color="text.secondary">
-                                    Valor: {((ticket.price ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    Valor: {formatPriceOrFree(ticket.price)}
                                   </Typography>
                               </Box>
                               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
@@ -898,7 +928,7 @@ function MyTicketsPage() {
                                   />
                                 ) : null}
                                 {ticket.transfer?.status === 'EXPIRED' ? (
-                                  <Chip size="small" label="Transferencia expirada" color="default" />
+                                  <Chip size="small" label="Transferência expirada" color="default" />
                                 ) : null}
                               </Stack>
                             </Stack>
@@ -908,12 +938,12 @@ function MyTicketsPage() {
                             ticket.transfer?.code ? (
                               <Stack direction="row" spacing={1} alignItems="center">
                                 <Typography variant="caption" color="text.secondary">
-                                  Codigo: {ticket.transfer.code}
+                                  Código: {ticket.transfer.code}
                                 </Typography>
                                 <IconButton
                                   size="small"
                                   onClick={() => handleCopyCode(ticket.transfer.code)}
-                                  aria-label="Copiar codigo"
+                                  aria-label="Copiar código"
                                 >
                                   <ContentCopyRounded fontSize="small" />
                                 </IconButton>
@@ -943,7 +973,7 @@ function MyTicketsPage() {
                                 >
                                   {cancelingTransferId === ticket.transfer.id
                                     ? 'Cancelando...'
-                                    : 'Cancelar transferencia'}
+                                    : 'Cancelar transferência'}
                                 </Button>
                               ) : null}
                               {canTransfer(ticket) ? (
@@ -971,8 +1001,8 @@ function MyTicketsPage() {
           <Grid size={{ xs: 12 }}>
             <Typography color="text.secondary">
               {grouped.length
-                ? 'Nao ha ingressos nesta aba.'
-                : 'Voce ainda nao tem ingressos.'}
+                ? 'Não há ingressos nesta aba.'
+                : 'Você ainda não tem ingressos.'}
             </Typography>
           </Grid>
         )}
@@ -1022,7 +1052,7 @@ function MyTicketsPage() {
                   Ingresso transferido com sucesso!
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Codigo para compartilhar: {transferCode}
+                  Código para compartilhar: {transferCode}
                 </Typography>
                 <Button
                   sx={{ mt: 1.5 }}
@@ -1037,7 +1067,7 @@ function MyTicketsPage() {
               </Box>
             ) : null}
             <Button variant="contained" onClick={handleTransfer}>
-              Enviar transferencia
+              Enviar transferência
             </Button>
           </Stack>
         </DialogContent>
@@ -1071,7 +1101,7 @@ function MyTicketsPage() {
               ) : qrImage ? (
                 <Box component="img" src={qrImage} alt="QR Code" sx={{ width: 240, height: 240 }} />
               ) : (
-                <Typography color="text.secondary">Nao foi possivel gerar o QR Code.</Typography>
+                <Typography color="text.secondary">Não foi possível gerar o QR Code.</Typography>
               )}
             </Box>
             {qrTicket ? (

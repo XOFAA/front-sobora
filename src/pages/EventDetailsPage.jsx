@@ -21,12 +21,14 @@ import MapRounded from '@mui/icons-material/MapRounded'
 import EventAvailableRounded from '@mui/icons-material/EventAvailableRounded'
 import ShareRounded from '@mui/icons-material/ShareRounded'
 import DirectionsRounded from '@mui/icons-material/DirectionsRounded'
+import CheckRounded from '@mui/icons-material/CheckRounded'
 import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import Checkbox from '@mui/material/Checkbox'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import { fetchEvent, fetchTicketTypes } from '../services/events'
+import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
@@ -104,6 +106,8 @@ function EventDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [redeemLoading, setRedeemLoading] = useState(false)
+  const [redeemOpen, setRedeemOpen] = useState(false)
   const [ticketSheetOpen, setTicketSheetOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
 
@@ -121,7 +125,7 @@ function EventDetailsPage() {
         const filtered = (ticketData || []).filter((ticket) => ticket.eventId === id && ticket.isActive !== false)
         setTicketTypes(filtered)
       } catch (err) {
-        if (active) setError('Nao foi possivel carregar o evento.')
+        if (active) setError('Não foi possível carregar o evento.')
       } finally {
         if (active) setLoading(false)
       }
@@ -148,6 +152,21 @@ function EventDetailsPage() {
     }, 0)
   }, [ticketTypes, quantities, halfSelections])
 
+  const isFreeOnlyEvent = useMemo(
+    () => ticketTypes.length > 0 && ticketTypes.every((ticket) => (ticket.price || 0) === 0),
+    [ticketTypes],
+  )
+
+  const getMaxSelectableByTicket = (ticket) => {
+    const stockLimit = Number.isInteger(ticket?.quantity) ? Math.max(ticket.quantity, 0) : Number.POSITIVE_INFINITY
+    const isLimitedFree =
+      (ticket?.price || 0) === 0 &&
+      Number.isInteger(ticket?.maxFreePerUser) &&
+      (ticket?.maxFreePerUser || 0) > 0
+    const freeLimit = isLimitedFree ? ticket.maxFreePerUser : Number.POSITIVE_INFINITY
+    return Math.min(stockLimit, freeLimit)
+  }
+
   const minPrice = useMemo(() => {
     const prices = ticketTypes.map((ticket) => ticket.price || 0).filter((price) => price > 0)
     if (!prices.length) return null
@@ -156,6 +175,7 @@ function EventDetailsPage() {
 
   const formatPrice = (value) =>
     ((value ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const formatTicketPrice = (value) => ((value ?? 0) === 0 ? 'Gratuito' : formatPrice(value))
 
   const getEventDateLabel = (value) => {
     if (!value) return 'Data a definir'
@@ -184,7 +204,7 @@ function EventDetailsPage() {
   const handleCheckout = () => {
     setError('')
     setSuccess('')
-      const selected = Object.entries(quantities)
+    const selected = Object.entries(quantities)
       .filter(([, qty]) => qty > 0)
       .map(([ticketTypeId, quantity]) => {
         const ticketType = ticketTypes.find((ticket) => ticket.id === ticketTypeId)
@@ -202,6 +222,33 @@ function EventDetailsPage() {
       })
     if (!selected.length) {
       setError('Selecione ao menos um ingresso.')
+      return
+    }
+    if (!user) {
+      navigate('/login')
+      return
+    }
+    const isFreeOnlySelection = selected.every((item) => (item.price || 0) === 0)
+    if (isFreeOnlySelection) {
+      setRedeemLoading(true)
+      createOrder(
+        selected.map((item) => ({
+          ticketTypeId: item.ticketTypeId,
+          quantity: item.quantity,
+          isHalf: item.isHalf,
+        })),
+      )
+        .then(() => {
+          setRedeemOpen(true)
+          setQuantities({})
+          setHalfSelections({})
+        })
+        .catch((err) => {
+          setError(err?.response?.data?.message || 'Falha ao resgatar ingresso gratuito.')
+        })
+        .finally(() => {
+          setRedeemLoading(false)
+        })
       return
     }
     navigate('/checkout', {
@@ -270,7 +317,7 @@ function EventDetailsPage() {
   }
 
   if (!event) {
-    return <Typography color="text.secondary">Evento nao encontrado.</Typography>
+    return <Typography color="text.secondary">Evento não encontrado.</Typography>
   }
 
   const ticketList = (
@@ -278,6 +325,8 @@ function EventDetailsPage() {
       {ticketTypes.length ? (
         ticketTypes.map((ticket) => {
           const qty = quantities[ticket.id] || 0
+          const maxSelectable = getMaxSelectableByTicket(ticket)
+          const hasReachedLimit = qty >= maxSelectable
           const isFixedHalfTicket = isFixedHalfTicketType(ticket)
           const isHalf = isFixedHalfTicket || Boolean(halfSelections[ticket.id])
           const unitPrice = isHalf
@@ -299,7 +348,7 @@ function EventDetailsPage() {
                   ) : null}
                 </Box>
                 <Typography fontWeight={700} sx={{ color: '#6d4ce7' }}>
-                  {formatPrice(unitPrice)}
+                  {formatTicketPrice(unitPrice)}
                 </Typography>
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
@@ -336,16 +385,22 @@ function EventDetailsPage() {
                 </Box>
                 <Button
                   variant="outlined"
+                  disabled={hasReachedLimit}
                   onClick={() =>
                     setQuantities((prev) => ({
                       ...prev,
-                      [ticket.id]: qty + 1,
+                      [ticket.id]: Math.min(maxSelectable, qty + 1),
                     }))
                   }
                 >
                   +
                 </Button>
               </Stack>
+              {(ticket.price || 0) === 0 && Number.isInteger(ticket.maxFreePerUser) && ticket.maxFreePerUser > 0 ? (
+                <Typography variant="caption" color="text.secondary">
+                  Limite por usuario: {ticket.maxFreePerUser}
+                </Typography>
+              ) : null}
               {ticket.allowHalfPrice || isFixedHalfTicket ? (
                 <Box>
                   {!isFixedHalfTicket ? (
@@ -401,7 +456,7 @@ function EventDetailsPage() {
           )
         })
       ) : (
-        <Typography color="text.secondary">Nenhum ingresso disponivel.</Typography>
+        <Typography color="text.secondary">Nenhum ingresso disponível.</Typography>
       )}
     </Stack>
   )
@@ -482,7 +537,7 @@ function EventDetailsPage() {
                 '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
               }}
             >
-              Adicionar ao calendario
+              Adicionar ao calendário
             </Button>
             <Button
               variant="outlined"
@@ -579,7 +634,7 @@ function EventDetailsPage() {
                   })}
                 </Stack>
               ) : (
-                <Typography color="text.secondary">Descricao ainda nao informada.</Typography>
+                <Typography color="text.secondary">Descrição ainda não informada.</Typography>
               )}
             </CardContent>
           </Card>
@@ -598,12 +653,16 @@ function EventDetailsPage() {
                   Total de ingressos: {totalItems}
                 </Typography>
                 <Typography fontWeight={700}>
-                  Total: {formatPrice(totalPrice)}
+                  Total: {isFreeOnlyEvent ? 'Gratuito' : formatPrice(totalPrice)}
                 </Typography>
                 {error ? <Alert severity="error">{error}</Alert> : null}
                 {success ? <Alert severity="success">{success}</Alert> : null}
-                <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length}>
-                  Finalizar compra (mock)
+                <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
+                  {redeemLoading
+                    ? 'Resgatando...'
+                    : isFreeOnlyEvent
+                      ? 'Resgatar ingresso'
+                      : 'Finalizar compra'}
                 </Button>
               </Stack>
             </CardContent>
@@ -611,6 +670,7 @@ function EventDetailsPage() {
         </Grid>
       </Grid>
 
+      {!isFreeOnlyEvent ? (
       <Box
         sx={{
           mt: 1,
@@ -757,6 +817,7 @@ function EventDetailsPage() {
           </CardContent>
         </Card>
       </Box>
+      ) : null}
 
       <Box
         sx={{
@@ -779,11 +840,11 @@ function EventDetailsPage() {
               Ingressos
             </Typography>
             <Typography fontWeight={700}>
-              {minPrice != null ? `A partir de ${formatPrice(minPrice)}` : 'Ver ingressos'}
+              {isFreeOnlyEvent ? 'Gratuito' : (minPrice != null ? `A partir de ${formatPrice(minPrice)}` : 'Ver ingressos')}
             </Typography>
           </Box>
           <Button variant="contained" onClick={() => setTicketSheetOpen(true)} disabled={!ticketTypes.length}>
-            Comprar
+            {isFreeOnlyEvent ? 'Resgatar' : 'Comprar'}
           </Button>
         </Stack>
       </Box>
@@ -809,12 +870,16 @@ function EventDetailsPage() {
             Total de ingressos: {totalItems}
           </Typography>
           <Typography fontWeight={700}>
-            Total: {formatPrice(totalPrice)}
+            Total: {isFreeOnlyEvent ? 'Gratuito' : formatPrice(totalPrice)}
           </Typography>
           {error ? <Alert severity="error">{error}</Alert> : null}
           {success ? <Alert severity="success">{success}</Alert> : null}
-          <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length}>
-            Finalizar compra (mock)
+          <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
+            {redeemLoading
+              ? 'Resgatando...'
+              : isFreeOnlyEvent
+                ? 'Resgatar ingresso'
+                : 'Finalizar compra'}
           </Button>
         </Stack>
       </Drawer>
@@ -830,20 +895,71 @@ function EventDetailsPage() {
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          <Box
-            sx={{
-              width: '100%',
-              height: 260,
-              borderRadius: 2,
-              bgcolor: 'grey.100',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'text.secondary',
-            }}
-          >
-            Mapa do evento (mock)
-          </Box>
+          {event?.mapImage ? (
+            <Box
+              component="img"
+              src={resolveImage(event.mapImage)}
+              alt={`Mapa do evento ${event.name || ''}`.trim()}
+              sx={{
+                width: '100%',
+                maxHeight: 420,
+                borderRadius: 2,
+                bgcolor: '#f8fafc',
+                border: '1px solid',
+                borderColor: 'divider',
+                objectFit: 'contain',
+              }}
+            />
+          ) : (
+            <Box
+              sx={{
+                width: '100%',
+                height: 260,
+                borderRadius: 2,
+                bgcolor: 'grey.100',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'text.secondary',
+              }}
+            >
+              Mapa do evento indisponível
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={redeemOpen} onClose={() => setRedeemOpen(false)} maxWidth="xs" fullWidth>
+        <DialogContent sx={{ py: 4 }}>
+          <Stack spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                bgcolor: '#DCFCE7',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#16A34A',
+              }}
+            >
+              <CheckRounded fontSize="large" />
+            </Box>
+            <Stack spacing={0.5} alignItems="center">
+              <Typography fontWeight={700} textAlign="center">
+                Ingresso resgatado com sucesso
+              </Typography>
+              <Typography variant="body2" color="text.secondary" align="center">
+                Seus ingressos já estão disponíveis para visualização.
+              </Typography>
+            </Stack>
+            <Button
+              variant="contained"
+              onClick={() => navigate('/tickets', { replace: true })}
+            >
+              Ver meus ingressos
+            </Button>
+          </Stack>
         </DialogContent>
       </Dialog>
     </Stack>
