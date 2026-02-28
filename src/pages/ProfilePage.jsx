@@ -51,7 +51,7 @@ const faceStatusMap = {
   DISABLED: { label: 'Desativada', color: 'default' },
   PENDING: { label: 'Pendente', color: 'warning' },
 }
-const PROFILE_UPDATE_CODE_SECONDS = 5 * 60
+const PROFILE_UPDATE_CODE_SECONDS = 30
 
 const fieldSx = {
   '& .MuiInputBase-root': {
@@ -158,9 +158,21 @@ function ProfilePage() {
       setResendLeft(response?.expiresInSeconds || PROFILE_UPDATE_CODE_SECONDS)
       setStatusMessage({ type: 'info', message: 'Código de confirmação enviado. Valide para concluir a atualização.' })
     } catch (err) {
+      const backendMessage = err?.response?.data?.message || ''
+      const waitMatch = String(backendMessage).match(/Aguarde\s+(\d+)s/i)
+      if (waitMatch) {
+        setPendingProfilePayload({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: normalizePhoneNumber(form.phone, form.countryIso2),
+          cpf: onlyDigits(form.cpf),
+        })
+        setVerifyModalOpen(true)
+        setResendLeft(Number(waitMatch[1] || PROFILE_UPDATE_CODE_SECONDS))
+      }
       setStatusMessage({
         type: 'error',
-        message: err?.response?.data?.message || 'Falha ao atualizar cadastro.',
+        message: backendMessage || 'Falha ao atualizar cadastro.',
       })
     } finally {
       setLoading(false)
