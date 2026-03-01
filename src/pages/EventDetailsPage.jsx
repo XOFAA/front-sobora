@@ -28,8 +28,6 @@ import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded'
 import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import Checkbox from '@mui/material/Checkbox'
-import FormControlLabel from '@mui/material/FormControlLabel'
 import { fetchEvent, fetchTicketTypes } from '../services/events'
 import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
@@ -106,7 +104,6 @@ function EventDetailsPage() {
   const [event, setEvent] = useState(null)
   const [ticketTypes, setTicketTypes] = useState([])
   const [quantities, setQuantities] = useState({})
-  const [halfSelections, setHalfSelections] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -158,13 +155,10 @@ function EventDetailsPage() {
   const totalPrice = useMemo(() => {
     return ticketTypes.reduce((acc, ticket) => {
       const qty = quantities[ticket.id] || 0
-      const isHalf = isFixedHalfTicketType(ticket) || Boolean(halfSelections[ticket.id])
-      const unitPrice = isHalf
-        ? Math.round((ticket.price || 0) * ((ticket.halfPricePercent ?? 50) / 100))
-        : (ticket.price || 0)
+      const unitPrice = ticket.price || 0
       return acc + qty * unitPrice
     }, 0)
-  }, [ticketTypes, quantities, halfSelections])
+  }, [ticketTypes, quantities])
 
   const isFreeOnlyEvent = useMemo(
     () => ticketTypes.length > 0 && ticketTypes.every((ticket) => (ticket.price || 0) === 0),
@@ -185,6 +179,38 @@ function EventDetailsPage() {
     const prices = ticketTypes.map((ticket) => ticket.price || 0).filter((price) => price > 0)
     if (!prices.length) return null
     return Math.min(...prices)
+  }, [ticketTypes])
+  const orderedTicketTypes = useMemo(() => {
+    if (!ticketTypes.length) return []
+    const childrenByParent = new Map()
+    const orphanHalfTickets = []
+    const baseTickets = []
+    const byId = new Map(ticketTypes.map((ticket) => [ticket.id, ticket]))
+
+    ticketTypes.forEach((ticket) => {
+      const isHalf = isFixedHalfTicketType(ticket)
+      const parentId = ticket?.parentTicketTypeId || null
+      if (isHalf && parentId) {
+        if (byId.has(parentId)) {
+          const current = childrenByParent.get(parentId) || []
+          current.push(ticket)
+          childrenByParent.set(parentId, current)
+        } else {
+          orphanHalfTickets.push(ticket)
+        }
+        return
+      }
+      baseTickets.push(ticket)
+    })
+
+    const ordered = []
+    baseTickets.forEach((base) => {
+      ordered.push(base)
+      const children = childrenByParent.get(base.id) || []
+      children.forEach((child) => ordered.push(child))
+    })
+    orphanHalfTickets.forEach((ticket) => ordered.push(ticket))
+    return ordered
   }, [ticketTypes])
 
   const formatPrice = (value) =>
@@ -226,10 +252,8 @@ function EventDetailsPage() {
       .filter(([, qty]) => qty > 0)
       .map(([ticketTypeId, quantity]) => {
         const ticketType = ticketTypes.find((ticket) => ticket.id === ticketTypeId)
-        const isHalf = isFixedHalfTicketType(ticketType) || Boolean(halfSelections[ticketTypeId])
-        const unitPrice = isHalf
-          ? Math.round((ticketType?.price || 0) * ((ticketType?.halfPricePercent ?? 50) / 100))
-          : (ticketType?.price || 0)
+        const isHalf = isFixedHalfTicketType(ticketType)
+        const unitPrice = ticketType?.price || 0
         return {
           ticketTypeId,
           quantity,
@@ -259,7 +283,6 @@ function EventDetailsPage() {
         .then(() => {
           setRedeemOpen(true)
           setQuantities({})
-          setHalfSelections({})
         })
         .catch((err) => {
           setError(err?.response?.data?.message || 'Falha ao resgatar ingresso gratuito.')
@@ -274,6 +297,14 @@ function EventDetailsPage() {
         event: {
           id: event.id,
           name: event.name,
+          dateRange: formatEventDateRange(event),
+          location: event.location,
+          statusLabel: isEventPast ? 'Encerrado' : 'Disponível',
+          organizer: {
+            name: organizerName,
+            email: organizerContactEmail || '',
+            tenantId: organizerTenantId || '',
+          },
         },
         items: selected,
       },
@@ -350,15 +381,12 @@ function EventDetailsPage() {
       {isEventPast ? (
         <Alert severity="warning">Evento encerrado. Nao ha mais selecao de ingressos.</Alert>
       ) : ticketTypes.length ? (
-        ticketTypes.map((ticket) => {
+        orderedTicketTypes.map((ticket) => {
           const qty = quantities[ticket.id] || 0
           const maxSelectable = getMaxSelectableByTicket(ticket)
           const hasReachedLimit = qty >= maxSelectable
           const isFixedHalfTicket = isFixedHalfTicketType(ticket)
-          const isHalf = isFixedHalfTicket || Boolean(halfSelections[ticket.id])
-          const unitPrice = isHalf
-            ? Math.round((ticket.price || 0) * ((ticket.halfPricePercent ?? 50) / 100))
-            : (ticket.price || 0)
+          const unitPrice = ticket.price || 0
           return (
             <Stack
               key={ticket.id}
@@ -428,25 +456,9 @@ function EventDetailsPage() {
                   Limite por usuario: {ticket.maxFreePerUser}
                 </Typography>
               ) : null}
-              {ticket.allowHalfPrice || isFixedHalfTicket ? (
+              {isFixedHalfTicket ? (
                 <Box>
-                  {!isFixedHalfTicket ? (
-                    <FormControlLabel
-                      control={(
-                        <Checkbox
-                          checked={isHalf}
-                          onChange={() =>
-                            setHalfSelections((prev) => ({
-                              ...prev,
-                              [ticket.id]: !isHalf,
-                            }))
-                          }
-                        />
-                      )}
-                      label={`Comprar meia-entrada (${ticket.halfPricePercent ?? 50}% de desconto)`}
-                    />
-                  ) : null}
-                  {isHalf && qty > 0 ? (
+                  {qty > 0 ? (
                     <Box
                       sx={{
                         mt: 1,
