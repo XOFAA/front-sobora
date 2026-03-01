@@ -23,6 +23,8 @@ import EventAvailableRounded from '@mui/icons-material/EventAvailableRounded'
 import ShareRounded from '@mui/icons-material/ShareRounded'
 import DirectionsRounded from '@mui/icons-material/DirectionsRounded'
 import CheckRounded from '@mui/icons-material/CheckRounded'
+import MailOutlineRounded from '@mui/icons-material/MailOutlineRounded'
+import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded'
 import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
@@ -31,6 +33,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import { fetchEvent, fetchTicketTypes } from '../services/events'
 import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
+import SecurityInfoSection from '../components/common/SecurityInfoSection'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
 
@@ -338,6 +341,9 @@ function EventDetailsPage() {
   const organizerName = event?.tenant?.tradeName || event?.tenant?.name || 'Organizador'
   const organizerLogoRaw = event?.tenant?.logoUrl || ''
   const organizerLogo = organizerLogoRaw ? resolveImage(organizerLogoRaw) : ''
+  const organizerTenantId = event?.tenant?.id || event?.tenantId || ''
+  const organizerDescription = event?.tenant?.description || 'Conheca mais sobre este organizador.'
+  const organizerContactEmail = event?.tenant?.contactEmail || ''
 
   const ticketList = (
     <Stack spacing={2}>
@@ -511,10 +517,16 @@ function EventDetailsPage() {
               }}
             />
           </Stack>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.2 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ mt: 1.2, width: 'fit-content', cursor: organizerTenantId ? 'pointer' : 'default' }}
+            onClick={() => organizerTenantId && navigate(`/organizers/${organizerTenantId}`)}
+          >
             <Avatar
               src={organizerLogo || undefined}
-              sx={{ width: 30, height: 30, bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.8rem' }}
+              sx={{ width: 30, height: 30, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.8rem' }}
             >
               {String(organizerName).slice(0, 1).toUpperCase()}
             </Avatar>
@@ -668,6 +680,67 @@ function EventDetailsPage() {
               ) : (
                 <Typography color="text.secondary">Descrição ainda não informada.</Typography>
               )}
+              <Divider sx={{ my: 2 }} />
+              <Card
+                variant="outlined"
+                sx={{
+                  borderRadius: '10px',
+                  borderColor: '#d7dce5',
+                  boxShadow: 'none',
+                }}
+              >
+                <CardContent sx={{ p: 2 }}>
+                  <Stack spacing={1.4}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Avatar
+                        src={organizerLogo || undefined}
+                        sx={{ width: 40, height: 40, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7' }}
+                      >
+                        {String(organizerName).slice(0, 1).toUpperCase()}
+                      </Avatar>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                          {organizerName}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
+                        >
+                          {organizerDescription}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<MailOutlineRounded />}
+                        component={organizerContactEmail ? 'a' : 'button'}
+                        href={organizerContactEmail ? `mailto:${organizerContactEmail}` : undefined}
+                        disabled={!organizerContactEmail}
+                        sx={{ borderRadius: '10px' }}
+                      >
+                        Entrar em contato
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<OpenInNewRounded />}
+                        onClick={() => organizerTenantId && navigate(`/organizers/${organizerTenantId}`)}
+                        disabled={!organizerTenantId}
+                        sx={{ borderRadius: '10px' }}
+                      >
+                        Ver página do organizador
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </Grid>
@@ -706,176 +779,7 @@ function EventDetailsPage() {
         </Grid>
       </Grid>
 
-      {!isFreeOnlyEvent ? (
-      <Box
-        sx={{
-          mt: 1,
-          px: { xs: 0, md: 1 },
-          py: { xs: 2, md: 3 },
-          borderRadius: 3,
-          background: 'linear-gradient(180deg, #f8f6ff 0%, #f5f2ff 100%)',
-        }}
-      >
-        <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 } }}>
-          <Typography variant="h5" fontWeight={700} sx={{ color: '#1f2937' }}>
-            Compra <Box component="span" sx={{ color: '#6d4ce7' }}>segura</Box> e informações importantes
-          </Typography>
-          <Typography color="text.secondary">
-            Na Sobora, sua segurança é a nossa prioridade.
-          </Typography>
-        </Stack>
-
-        <Grid container spacing={2} sx={{ mb: { xs: 2.5, md: 3 } }}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card
-              sx={{
-                height: '100%',
-                borderRadius: 3,
-                bgcolor: '#6b4cd6',
-                color: '#fff',
-                boxShadow: '0 18px 30px rgba(76, 52, 196, 0.25)',
-              }}
-            >
-              <CardContent>
-                <Typography fontWeight={700} sx={{ textAlign: 'center', mb: 1.5 }}>
-                  Métodos de pagamento
-                </Typography>
-                <Stack direction="row" spacing={1.5} justifyContent="center" alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                  {[
-                    { name: 'Visa', file: 'Visa.svg' },
-                    { name: 'Mastercard', file: 'Mastercard.svg' },
-                    { name: 'Elo', file: 'Elo.svg' },
-                    { name: 'American Express', file: 'American.svg' },
-                    { name: 'Pix', file: 'Pix.svg' },
-                    { name: 'Boleto', file: 'Boleto.svg' },
-                  ].map((method) => (
-                    <Box
-                      key={method.name}
-                      sx={{
-                        height: 24,
-                        px: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 1.5,
-                        backgroundColor: 'rgba(255,255,255,0.9)',
-                      }}
-                    >
-                      <Box
-                        component="img"
-                        src={`/assets/${method.file}`}
-                        alt={method.name}
-                        sx={{ height: 16, width: 'auto', display: 'block' }}
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-                <Typography sx={{ textAlign: 'center', mt: 2, fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
-                  Parcele a compra de seus ingressos em até 12x*
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card
-              sx={{
-                height: '100%',
-                borderRadius: 3,
-                bgcolor: '#5a3fc4',
-                color: '#fff',
-                boxShadow: '0 18px 30px rgba(76, 52, 196, 0.25)',
-              }}
-            >
-              <CardContent>
-                <Typography fontWeight={700} sx={{ textAlign: 'center', mb: 1.5 }}>
-                  Segurança garantida
-                </Typography>
-                <Typography sx={{ textAlign: 'center', fontSize: '0.92rem', color: 'rgba(255,255,255,0.92)' }}>
-                  Compra 100% segura: SSL, LGPD, antifraude em tempo real, QR Code único, biometria facial e garantia de
-                  reembolso em caso de cancelamento do evento.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        <Card
-          sx={{
-            borderRadius: 3,
-            bgcolor: '#fff2de',
-            border: '1px solid #f7c873',
-            boxShadow: 'none',
-          }}
-        >
-          <CardContent>
-            <Stack spacing={1.5} sx={{ textAlign: 'center' }}>
-              <Typography fontWeight={700} sx={{ color: '#f59e0b' }}>
-                Notou algo suspeito nesta página?
-              </Typography>
-              <Typography sx={{ color: '#7c5b1c', fontSize: '0.95rem' }}>
-                Se você identificar qualquer comportamento estranho, preços diferentes dos praticados oficialmente, ou
-                suspeitar que este anúncio é fraudulento, denuncie imediatamente. Nossa equipe de segurança investiga
-                todas as denúncias.
-              </Typography>
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1.5}
-                justifyContent="center"
-                alignItems="center"
-              >
-                <Button
-                  variant="contained"
-                  sx={{
-                    borderRadius: 999,
-                    px: 3,
-                    bgcolor: '#f59e0b',
-                    color: '#fff',
-                    '&:hover': { bgcolor: '#ea8d00' },
-                  }}
-                >
-                  Denunciar página
-                </Button>
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderRadius: 999,
-                    px: 3,
-                    borderColor: '#f59e0b',
-                    color: '#f59e0b',
-                    '&:hover': { borderColor: '#ea8d00', backgroundColor: 'rgba(245, 158, 11, 0.08)' },
-                  }}
-                >
-                  Falar com suporte
-                </Button>
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderRadius: 999,
-                    px: 3,
-                    borderColor: '#6d4ce7',
-                    color: '#6d4ce7',
-                    '&:hover': { borderColor: '#5a3fd6', backgroundColor: 'rgba(109, 76, 231, 0.08)' },
-                  }}
-                >
-                  Central de ajuda
-                </Button>
-              </Stack>
-              <Box>
-                <Typography fontWeight={700} sx={{ color: '#1f2937', mb: 0.4 }}>
-                  Canais oficiais de suporte:
-                </Typography>
-                <Typography sx={{ color: '#7c5b1c', fontSize: '0.9rem' }}>
-                  Webchat: disponível 24 horas por dia
-                </Typography>
-                <Typography sx={{ color: '#7c5b1c', fontSize: '0.9rem' }}>
-                  E-mail: suporte@sobora.com.br (respondemos em até 24 horas)
-                </Typography>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-      </Box>
-      ) : null}
+      {!isFreeOnlyEvent ? <SecurityInfoSection /> : null}
 
       {!isEventPast ? (
         <Box
@@ -1029,3 +933,4 @@ function EventDetailsPage() {
 }
 
 export default EventDetailsPage
+

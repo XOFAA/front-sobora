@@ -359,6 +359,7 @@ function HomePage() {
               const tenantLogoRaw = getTenantLogoRaw(event)
               const tenantLogo = tenantLogoRaw ? resolveImage(tenantLogoRaw) : ''
               const tenantName = event?.tenant?.tradeName || event?.tenant?.name || 'Organizador'
+              const tenantId = event?.tenant?.id || event?.tenantId || ''
               const categoryKey = resolveEventCategory(event)
               const categoryLabel =
                 EVENT_CATEGORIES.find((item) => item.key === categoryKey)?.label || 'Evento'
@@ -422,8 +423,14 @@ function HomePage() {
                             fontWeight: 700,
                           }}
                         />
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Avatar src={tenantLogo || undefined} sx={{ width: 26, height: 26, bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.75rem' }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          onClick={() => tenantId && navigate(`/organizers/${tenantId}`)}
+                          sx={{ cursor: tenantId ? 'pointer' : 'default', width: 'fit-content' }}
+                        >
+                          <Avatar src={tenantLogo || undefined} sx={{ width: 26, height: 26, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.75rem' }}>
                             {String(tenantName).slice(0, 1).toUpperCase()}
                           </Avatar>
                           <Typography variant="caption" color="text.secondary">

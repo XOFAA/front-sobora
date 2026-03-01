@@ -10,6 +10,7 @@ import MyTicketsPage from './pages/MyTicketsPage'
 import TransferAcceptPage from './pages/TransferAcceptPage'
 import FaceEnrollPage from './pages/FaceEnrollPage'
 import ProfilePage from './pages/ProfilePage'
+import OrganizerPage from './pages/OrganizerPage'
 import { useAuth } from './contexts/AuthContext'
 
 function ProtectedRoute({ children }) {
@@ -26,6 +27,7 @@ function App() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/events/:id" element={<EventDetailsPage />} />
+        <Route path="/organizers/:tenantId" element={<OrganizerPage />} />
         <Route path="/tickets" element={
           <ProtectedRoute>
             <MyTicketsPage />

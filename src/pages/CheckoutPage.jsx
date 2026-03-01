@@ -37,6 +37,7 @@ function CheckoutPage() {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [couponCode, setCouponCode] = useState('')
   const [resultOpen, setResultOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('credit')
   const [buyer, setBuyer] = useState({
@@ -86,7 +87,10 @@ function CheckoutPage() {
         quantity: item.quantity,
         isHalf: item.isHalf,
       }))
-      await createOrder(payload)
+      await createOrder({
+        items: payload,
+        couponCode: couponCode.trim() || undefined,
+      })
       setStep(STEPS.length - 1)
       setResultOpen(true)
     } catch (err) {
@@ -142,6 +146,18 @@ function CheckoutPage() {
                   <Typography fontWeight={700}>{formatPrice(item.price * item.quantity)}</Typography>
                 </Stack>
               ))}
+            </Stack>
+            <Divider sx={{ my: 2 }} />
+            <Stack spacing={1.1}>
+              <TextField
+                label="Cupom de desconto (opcional)"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                placeholder="Ex.: FRONT10"
+              />
+              <Typography variant="caption" color="text.secondary">
+                O desconto e validado no servidor ao confirmar a compra.
+              </Typography>
             </Stack>
             <Divider sx={{ my: 2 }} />
             <Stack direction="row" justifyContent="space-between">
