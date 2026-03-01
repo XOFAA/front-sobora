@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import { Box, Button, Stack, TextField, Typography } from '@mui/material'
+import { Avatar, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { Card, CardContent, Chip } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import SearchRounded from '@mui/icons-material/SearchRounded'
@@ -133,6 +133,12 @@ const getEventImageRaw = (event) =>
   event?.image ||
   event?.banner ||
   event?.cover ||
+  ''
+
+const getTenantLogoRaw = (event) =>
+  event?.tenant?.logoUrl ||
+  event?.tenantLogo ||
+  event?.organizerLogo ||
   ''
 
 const getEventDates = (event) => {
@@ -350,6 +356,9 @@ function HomePage() {
             {filteredEvents.slice(0, 6).map((event) => {
               const imageRaw = getEventImageRaw(event)
               const image = imageRaw ? resolveImage(imageRaw) : ''
+              const tenantLogoRaw = getTenantLogoRaw(event)
+              const tenantLogo = tenantLogoRaw ? resolveImage(tenantLogoRaw) : ''
+              const tenantName = event?.tenant?.tradeName || event?.tenant?.name || 'Organizador'
               const categoryKey = resolveEventCategory(event)
               const categoryLabel =
                 EVENT_CATEGORIES.find((item) => item.key === categoryKey)?.label || 'Evento'
@@ -413,6 +422,14 @@ function HomePage() {
                             fontWeight: 700,
                           }}
                         />
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Avatar src={tenantLogo || undefined} sx={{ width: 26, height: 26, bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.75rem' }}>
+                            {String(tenantName).slice(0, 1).toUpperCase()}
+                          </Avatar>
+                          <Typography variant="caption" color="text.secondary">
+                            {tenantName}
+                          </Typography>
+                        </Stack>
                         <Typography fontWeight={700} sx={{ lineHeight: 1.25 }}>
                           {event.name || 'Evento'}
                         </Typography>

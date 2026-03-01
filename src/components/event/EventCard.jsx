@@ -30,6 +30,7 @@ function EventCard({ event, lightMeta = false }) {
     event.thumbDesktop ||
     event.image ||
     ''
+  const tenantName = event?.tenant?.tradeName || event?.tenant?.name || 'Organizador'
 
   return (
     <Box
@@ -91,6 +92,18 @@ function EventCard({ event, lightMeta = false }) {
           }}
         >
           {event.name}
+        </Typography>
+        <Typography
+          variant="caption"
+          color={lightMeta ? 'rgba(255,255,255,0.88)' : 'text.secondary'}
+          sx={{
+            maxWidth: '100%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {tenantName}
         </Typography>
 
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Card,
@@ -122,8 +123,18 @@ function EventDetailsPage() {
         ])
         if (!active) return
         setEvent(eventData)
-        const filtered = (ticketData || []).filter((ticket) => ticket.eventId === id && ticket.isActive !== false)
-        setTicketTypes(filtered)
+        const fromEvent = Array.isArray(eventData?.ticketTypes)
+          ? eventData.ticketTypes.filter((ticket) => ticket?.eventId === id)
+          : []
+        const fromTicketEndpoint = (ticketData || []).filter((ticket) => ticket?.eventId === id)
+        const mergedById = new Map()
+        ;[...fromTicketEndpoint, ...fromEvent].forEach((ticket) => {
+          if (!ticket?.id) return
+          const previous = mergedById.get(ticket.id) || {}
+          mergedById.set(ticket.id, { ...previous, ...ticket })
+        })
+        const activeTickets = Array.from(mergedById.values()).filter((ticket) => ticket.isActive !== false)
+        setTicketTypes(activeTickets)
       } catch (err) {
         if (active) setError('Não foi possível carregar o evento.')
       } finally {
@@ -204,6 +215,10 @@ function EventDetailsPage() {
   const handleCheckout = () => {
     setError('')
     setSuccess('')
+    if (isEventPast) {
+      setError('Este evento ja encerrou e nao aceita novas compras ou resgates.')
+      return
+    }
     const selected = Object.entries(quantities)
       .filter(([, qty]) => qty > 0)
       .map(([ticketTypeId, quantity]) => {
@@ -320,9 +335,15 @@ function EventDetailsPage() {
     return <Typography color="text.secondary">Evento não encontrado.</Typography>
   }
 
+  const organizerName = event?.tenant?.tradeName || event?.tenant?.name || 'Organizador'
+  const organizerLogoRaw = event?.tenant?.logoUrl || ''
+  const organizerLogo = organizerLogoRaw ? resolveImage(organizerLogoRaw) : ''
+
   const ticketList = (
     <Stack spacing={2}>
-      {ticketTypes.length ? (
+      {isEventPast ? (
+        <Alert severity="warning">Evento encerrado. Nao ha mais selecao de ingressos.</Alert>
+      ) : ticketTypes.length ? (
         ticketTypes.map((ticket) => {
           const qty = quantities[ticket.id] || 0
           const maxSelectable = getMaxSelectableByTicket(ticket)
@@ -490,6 +511,17 @@ function EventDetailsPage() {
               }}
             />
           </Stack>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.2 }}>
+            <Avatar
+              src={organizerLogo || undefined}
+              sx={{ width: 30, height: 30, bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.8rem' }}
+            >
+              {String(organizerName).slice(0, 1).toUpperCase()}
+            </Avatar>
+            <Typography variant="body2" color="text.secondary">
+              Organizado por {organizerName}
+            </Typography>
+          </Stack>
           <Stack spacing={1} sx={{ mt: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center">
               <CalendarMonthRounded fontSize="small" color="disabled" />
@@ -642,29 +674,33 @@ function EventDetailsPage() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Selecione seus ingressos
-              </Typography>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Selecione seus ingressos
+                </Typography>
               <Divider sx={{ mb: 2 }} />
               {ticketList}
               <Divider sx={{ my: 2 }} />
-              <Stack spacing={1}>
-                <Typography fontWeight={600}>
-                  Total de ingressos: {totalItems}
-                </Typography>
-                <Typography fontWeight={700}>
-                  Total: {isFreeOnlyEvent ? 'Gratuito' : formatPrice(totalPrice)}
-                </Typography>
-                {error ? <Alert severity="error">{error}</Alert> : null}
-                {success ? <Alert severity="success">{success}</Alert> : null}
-                <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
-                  {redeemLoading
-                    ? 'Resgatando...'
-                    : isFreeOnlyEvent
-                      ? 'Resgatar ingresso'
-                      : 'Finalizar compra'}
-                </Button>
-              </Stack>
+              {isEventPast ? (
+                <Alert severity="warning">Evento encerrado. Compras e resgates indisponiveis.</Alert>
+              ) : (
+                <Stack spacing={1}>
+                  <Typography fontWeight={600}>
+                    Total de ingressos: {totalItems}
+                  </Typography>
+                  <Typography fontWeight={700}>
+                    Total: {isFreeOnlyEvent ? 'Gratuito' : formatPrice(totalPrice)}
+                  </Typography>
+                  {error ? <Alert severity="error">{error}</Alert> : null}
+                  {success ? <Alert severity="success">{success}</Alert> : null}
+                  <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
+                    {redeemLoading
+                      ? 'Resgatando...'
+                      : isFreeOnlyEvent
+                        ? 'Resgatar ingresso'
+                        : 'Finalizar compra'}
+                  </Button>
+                </Stack>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -704,13 +740,35 @@ function EventDetailsPage() {
                 <Typography fontWeight={700} sx={{ textAlign: 'center', mb: 1.5 }}>
                   Métodos de pagamento
                 </Typography>
-                <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                  <Typography fontWeight={700} sx={{ letterSpacing: 0.6 }}>VISA</Typography>
-                  <Typography fontWeight={700} sx={{ letterSpacing: 0.6 }}>mastercard</Typography>
-                  <Typography fontWeight={700} sx={{ letterSpacing: 0.6 }}>elo</Typography>
-                  <Typography fontWeight={700} sx={{ letterSpacing: 0.6 }}>AMERICAN</Typography>
-                  <Typography fontWeight={700} sx={{ letterSpacing: 0.6 }}>PAYPAL</Typography>
-                  <Typography fontWeight={700} sx={{ letterSpacing: 0.6 }}>PIX</Typography>
+                <Stack direction="row" spacing={1.5} justifyContent="center" alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                  {[
+                    { name: 'Visa', file: 'Visa.svg' },
+                    { name: 'Mastercard', file: 'Mastercard.svg' },
+                    { name: 'Elo', file: 'Elo.svg' },
+                    { name: 'American Express', file: 'American.svg' },
+                    { name: 'Pix', file: 'Pix.svg' },
+                    { name: 'Boleto', file: 'Boleto.svg' },
+                  ].map((method) => (
+                    <Box
+                      key={method.name}
+                      sx={{
+                        height: 24,
+                        px: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 1.5,
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={`/assets/${method.file}`}
+                        alt={method.name}
+                        sx={{ height: 16, width: 'auto', display: 'block' }}
+                      />
+                    </Box>
+                  ))}
                 </Stack>
                 <Typography sx={{ textAlign: 'center', mt: 2, fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
                   Parcele a compra de seus ingressos em até 12x*
@@ -819,70 +877,74 @@ function EventDetailsPage() {
       </Box>
       ) : null}
 
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          display: { xs: 'flex', md: 'none' },
-          bgcolor: 'background.paper',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          px: 2,
-          py: 1.5,
-          zIndex: 1200,
-        }}
-      >
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
-          <Box>
-            <Typography variant="caption" color="text.secondary">
+      {!isEventPast ? (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            display: { xs: 'flex', md: 'none' },
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            px: 2,
+            py: 1.5,
+            zIndex: 1200,
+          }}
+        >
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Ingressos
+              </Typography>
+              <Typography fontWeight={700}>
+                {isFreeOnlyEvent ? 'Gratuito' : (minPrice != null ? `A partir de ${formatPrice(minPrice)}` : 'Ver ingressos')}
+              </Typography>
+            </Box>
+            <Button variant="contained" onClick={() => setTicketSheetOpen(true)} disabled={!ticketTypes.length}>
+              {isFreeOnlyEvent ? 'Resgatar' : 'Comprar'}
+            </Button>
+          </Stack>
+        </Box>
+      ) : null}
+
+      {!isEventPast ? (
+        <Drawer
+          anchor="bottom"
+          open={ticketSheetOpen}
+          onClose={() => setTicketSheetOpen(false)}
+          PaperProps={{ sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, p: 2 } }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="h6" fontWeight={700}>
               Ingressos
             </Typography>
-            <Typography fontWeight={700}>
-              {isFreeOnlyEvent ? 'Gratuito' : (minPrice != null ? `A partir de ${formatPrice(minPrice)}` : 'Ver ingressos')}
-            </Typography>
+            <IconButton onClick={() => setTicketSheetOpen(false)} aria-label="Fechar">
+              <CloseRounded />
+            </IconButton>
           </Box>
-          <Button variant="contained" onClick={() => setTicketSheetOpen(true)} disabled={!ticketTypes.length}>
-            {isFreeOnlyEvent ? 'Resgatar' : 'Comprar'}
-          </Button>
-        </Stack>
-      </Box>
-
-      <Drawer
-        anchor="bottom"
-        open={ticketSheetOpen}
-        onClose={() => setTicketSheetOpen(false)}
-        PaperProps={{ sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, p: 2 } }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="h6" fontWeight={700}>
-            Ingressos
-          </Typography>
-          <IconButton onClick={() => setTicketSheetOpen(false)} aria-label="Fechar">
-            <CloseRounded />
-          </IconButton>
-        </Box>
-        {ticketList}
-        <Divider sx={{ my: 2 }} />
-        <Stack spacing={1}>
-          <Typography fontWeight={600}>
-            Total de ingressos: {totalItems}
-          </Typography>
-          <Typography fontWeight={700}>
-            Total: {isFreeOnlyEvent ? 'Gratuito' : formatPrice(totalPrice)}
-          </Typography>
-          {error ? <Alert severity="error">{error}</Alert> : null}
-          {success ? <Alert severity="success">{success}</Alert> : null}
-          <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
-            {redeemLoading
-              ? 'Resgatando...'
-              : isFreeOnlyEvent
-                ? 'Resgatar ingresso'
-                : 'Finalizar compra'}
-          </Button>
-        </Stack>
-      </Drawer>
+          {ticketList}
+          <Divider sx={{ my: 2 }} />
+          <Stack spacing={1}>
+            <Typography fontWeight={600}>
+              Total de ingressos: {totalItems}
+            </Typography>
+            <Typography fontWeight={700}>
+              Total: {isFreeOnlyEvent ? 'Gratuito' : formatPrice(totalPrice)}
+            </Typography>
+            {error ? <Alert severity="error">{error}</Alert> : null}
+            {success ? <Alert severity="success">{success}</Alert> : null}
+            <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
+              {redeemLoading
+                ? 'Resgatando...'
+                : isFreeOnlyEvent
+                  ? 'Resgatar ingresso'
+                  : 'Finalizar compra'}
+            </Button>
+          </Stack>
+        </Drawer>
+      ) : null}
 
       <Dialog open={mapOpen} onClose={() => setMapOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pr: 6 }}>
