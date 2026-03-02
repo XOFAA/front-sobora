@@ -136,7 +136,10 @@ function LoginCodePage() {
 
   useEffect(() => {
     const cleanCode = String(code || '').replace(/\D/g, '')
-    if (cleanCode.length !== 6) return
+    if (cleanCode.length !== 6) {
+      lastAutoSubmittedCodeRef.current = ''
+      return
+    }
     if (!identifier || loggingIn) return
     if (lastAutoSubmittedCodeRef.current === cleanCode) return
 
