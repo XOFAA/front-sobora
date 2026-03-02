@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Avatar,
@@ -100,6 +100,7 @@ function isFixedHalfTicketType(ticket) {
 function EventDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const [event, setEvent] = useState(null)
   const [ticketTypes, setTicketTypes] = useState([])
@@ -111,6 +112,7 @@ function EventDetailsPage() {
   const [redeemOpen, setRedeemOpen] = useState(false)
   const [ticketSheetOpen, setTicketSheetOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
+  const restoredSelectionRef = useRef(false)
 
   useEffect(() => {
     let active = true
@@ -136,7 +138,7 @@ function EventDetailsPage() {
         const activeTickets = Array.from(mergedById.values()).filter((ticket) => ticket.isActive !== false)
         setTicketTypes(activeTickets)
       } catch (err) {
-        if (active) setError('Não foi possível carregar o evento.')
+        if (active) setError('NÃ£o foi possÃ­vel carregar o evento.')
       } finally {
         if (active) setLoading(false)
       }
@@ -146,6 +148,31 @@ function EventDetailsPage() {
       active = false
     }
   }, [id])
+  useEffect(() => {
+    if (restoredSelectionRef.current) return
+    const prefill = location.state?.prefillTicketQuantities
+    if (!prefill || typeof prefill !== 'object') return
+
+    const next = Object.entries(prefill).reduce((acc, [ticketTypeId, qty]) => {
+      const parsedQty = Number(qty)
+      if (Number.isInteger(parsedQty) && parsedQty > 0) {
+        acc[ticketTypeId] = parsedQty
+      }
+      return acc
+    }, {})
+
+    if (Object.keys(next).length) {
+      setQuantities(next)
+      setSuccess('Seus ingressos selecionados foram restaurados.')
+    }
+
+    restoredSelectionRef.current = true
+    const { prefillTicketQuantities, ...rest } = location.state || {}
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: Object.keys(rest).length ? rest : null,
+    })
+  }, [location.hash, location.pathname, location.search, location.state, navigate])
 
   const totalItems = useMemo(
     () => Object.values(quantities).reduce((acc, value) => acc + value, 0),
@@ -266,11 +293,24 @@ function EventDetailsPage() {
       setError('Selecione ao menos um ingresso.')
       return
     }
-    if (!user) {
-      navigate('/login')
+    const isFreeOnlySelection = selected.every((item) => (item.price || 0) === 0)
+    const selectedQuantities = selected.reduce((acc, item) => {
+      acc[item.ticketTypeId] = item.quantity
+      return acc
+    }, {})
+    if (!user && isFreeOnlySelection) {
+      navigate('/login', {
+        state: {
+          from: {
+            pathname: location.pathname,
+            state: {
+              prefillTicketQuantities: selectedQuantities,
+            },
+          },
+        },
+      })
       return
     }
-    const isFreeOnlySelection = selected.every((item) => (item.price || 0) === 0)
     if (isFreeOnlySelection) {
       setRedeemLoading(true)
       createOrder(
@@ -299,7 +339,7 @@ function EventDetailsPage() {
           name: event.name,
           dateRange: formatEventDateRange(event),
           location: event.location,
-          statusLabel: isEventPast ? 'Encerrado' : 'Disponível',
+          statusLabel: isEventPast ? 'Encerrado' : 'DisponÃ­vel',
           organizer: {
             name: organizerName,
             email: organizerContactEmail || '',
@@ -366,7 +406,7 @@ function EventDetailsPage() {
   }
 
   if (!event) {
-    return <Typography color="text.secondary">Evento não encontrado.</Typography>
+    return <Typography color="text.secondary">Evento nÃ£o encontrado.</Typography>
   }
 
   const organizerName = event?.tenant?.tradeName || event?.tenant?.name || 'Organizador'
@@ -478,24 +518,24 @@ function EventDetailsPage() {
                         <li>Carteira de estudante (com validade)</li>
                         <li>Carteirinha do id jovem</li>
                         <li>Documento que comprove 60+ anos</li>
-                        <li>Laudo médico (PCD)</li>
+                        <li>Laudo mÃ©dico (PCD)</li>
                       </Box>
                       <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                        *Apresentação obrigatória na entrada
+                        *ApresentaÃ§Ã£o obrigatÃ³ria na entrada
                       </Typography>
                     </Box>
                   ) : null}
                 </Box>
               ) : (
                 <Typography variant="caption" color="text.secondary">
-                  Meia-entrada não disponível
+                  Meia-entrada nÃ£o disponÃ­vel
                 </Typography>
               )}
             </Stack>
           )
         })
       ) : (
-        <Typography color="text.secondary">Nenhum ingresso disponível.</Typography>
+        <Typography color="text.secondary">Nenhum ingresso disponÃ­vel.</Typography>
       )}
     </Stack>
   )
@@ -594,7 +634,7 @@ function EventDetailsPage() {
                 '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
               }}
             >
-              Adicionar ao calendário
+              Adicionar ao calendÃ¡rio
             </Button>
             <Button
               variant="outlined"
@@ -691,7 +731,7 @@ function EventDetailsPage() {
                   })}
                 </Stack>
               ) : (
-                <Typography color="text.secondary">Descrição ainda não informada.</Typography>
+                <Typography color="text.secondary">DescriÃ§Ã£o ainda nÃ£o informada.</Typography>
               )}
               <Divider sx={{ my: 2 }} />
               <Card
@@ -748,7 +788,7 @@ function EventDetailsPage() {
                         disabled={!organizerTenantId}
                         sx={{ borderRadius: '10px' }}
                       >
-                        Ver página do organizador
+                        Ver pÃ¡gina do organizador
                       </Button>
                     </Stack>
                   </Stack>
@@ -902,7 +942,7 @@ function EventDetailsPage() {
                 color: 'text.secondary',
               }}
             >
-              Mapa do evento indisponível
+              Mapa do evento indisponÃ­vel
             </Box>
           )}
         </DialogContent>
@@ -929,7 +969,7 @@ function EventDetailsPage() {
                 Ingresso resgatado com sucesso
               </Typography>
               <Typography variant="body2" color="text.secondary" align="center">
-                Seus ingressos já estão disponíveis para visualização.
+                Seus ingressos jÃ¡ estÃ£o disponÃ­veis para visualizaÃ§Ã£o.
               </Typography>
             </Stack>
             <Button
@@ -946,4 +986,7 @@ function EventDetailsPage() {
 }
 
 export default EventDetailsPage
+
+
+
 
