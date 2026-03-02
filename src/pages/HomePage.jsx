@@ -249,14 +249,14 @@ function HomePage() {
 
   return (
     <Stack spacing={0}>
-      <Box sx={{ textAlign: 'center', pb: { xs: 3.5, md: 4.5 } }}>
-        <Typography variant="h4" fontWeight={700}>
+      <Box sx={{ textAlign: 'center', pb: { xs: 3.5, md: 4.5 }, px: { xs: 0.5, sm: 1 } }}>
+        <Typography variant="h4" fontWeight={700} sx={{ px: { xs: 0.5, sm: 0 } }}>
           Descubra experiências{' '}
           <Box component="span" sx={{ color: '#6d4ce7' }}>
             incríveis
           </Box>
         </Typography>
-        <Typography color="text.secondary" sx={{ mt: 0.7 }}>
+        <Typography color="text.secondary" sx={{ mt: 0.7, maxWidth: 760, mx: 'auto', fontSize: { xs: '0.93rem', md: '1rem' } }}>
           Shows, espetáculos teatrais, eventos educativos e muito mais. Compre ingressos com
           segurança e facilidade.
         </Typography>
@@ -300,11 +300,11 @@ function HomePage() {
       </Box>
 
       <Box id="eventos" sx={{ pt: { xs: 4, md: 5 }, scrollMarginTop: { xs: 90, md: 110 } }}>
-        <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 } }}>
+        <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 }, px: { xs: 0.5, sm: 0 } }}>
           <Typography variant="h5" fontWeight={700}>
             Mais eventos
           </Typography>
-          <Typography color="text.secondary">
+          <Typography color="text.secondary" sx={{ maxWidth: 760, mx: 'auto' }}>
             Descubra os melhores eventos culturais e outros formatos que estão por vir.
           </Typography>
         </Stack>
@@ -313,10 +313,14 @@ function HomePage() {
           direction="row"
           spacing={1}
           sx={{
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            rowGap: 1,
+            overflowX: { xs: 'auto', md: 'visible' },
+            flexWrap: { xs: 'nowrap', md: 'wrap' },
+            justifyContent: { xs: 'flex-start', md: 'center' },
+            rowGap: { xs: 0, md: 1 },
             mb: { xs: 2.5, md: 3 },
+            pb: { xs: 0.5, md: 0 },
+            pr: { xs: 0.5, md: 0 },
+            '&::-webkit-scrollbar': { display: 'none' },
           }}
         >
         {EVENT_CATEGORIES.map((category) => {
@@ -334,10 +338,12 @@ function HomePage() {
                 fontWeight: 600,
                 px: 0.5,
                 borderRadius: '10px',
+                flexShrink: 0,
                 bgcolor: eventsCategory === category.key ? '#5f45da' : '#fff',
                 color: eventsCategory === category.key ? '#fff' : '#5f45da',
                 border: eventsCategory === category.key ? '1px solid #5f45da' : '1px solid #e5e7eb',
                 boxShadow: eventsCategory === category.key ? '0 10px 18px rgba(109, 76, 231, 0.28)' : 'none',
+                '& .MuiChip-label': { px: 1, fontSize: { xs: '0.78rem', md: '0.86rem' } },
                 '& .MuiChip-icon': {
                   color: eventsCategory === category.key ? '#fff' : '#5f45da',
                 },
@@ -411,7 +417,7 @@ function HomePage() {
                         />
                       ) : null}
                     </Box>
-                    <CardContent sx={{ flex: 1 }}>
+                    <CardContent sx={{ flex: 1, p: { xs: 1.4, md: 2 } }}>
                       <Stack spacing={1}>
                         <Chip
                           label={categoryLabel}
@@ -433,11 +439,11 @@ function HomePage() {
                           <Avatar src={tenantLogo || undefined} sx={{ width: 26, height: 26, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.75rem' }}>
                             {String(tenantName).slice(0, 1).toUpperCase()}
                           </Avatar>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 220 }} noWrap>
                             {tenantName}
                           </Typography>
                         </Stack>
-                        <Typography fontWeight={700} sx={{ lineHeight: 1.25 }}>
+                        <Typography fontWeight={700} sx={{ lineHeight: 1.25, fontSize: { xs: '1rem', md: '1.1rem' } }}>
                           {event.name || 'Evento'}
                         </Typography>
                         <Stack direction="row" spacing={1} alignItems="center">
@@ -452,7 +458,7 @@ function HomePage() {
                             {event.location || 'Local a definir'}
                           </Typography>
                         </Stack>
-                        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between">
                           <Stack direction="row" spacing={1} alignItems="center">
                             <ConfirmationNumberRounded fontSize="small" sx={{ color: '#9ca3af' }} />
                             <Stack spacing={0} alignItems="flex-start">
@@ -477,6 +483,7 @@ function HomePage() {
                             sx={{
                               borderRadius: '10px',
                               px: 2,
+                              width: { xs: '100%', sm: 'auto' },
                               bgcolor: '#6d4ce7',
                               '&:hover': { bgcolor: '#5a3fd6' },
                             }}
@@ -499,7 +506,7 @@ function HomePage() {
       </Box>
 
       <Box id="como-funciona" sx={{ pt: { xs: 4, md: 5 }, scrollMarginTop: { xs: 90, md: 110 } }}>
-        <Stack spacing={1} sx={{ textAlign: 'center', mb: { xs: 3, md: 4 } }}>
+        <Stack spacing={1} sx={{ textAlign: 'center', mb: { xs: 3, md: 4 }, px: { xs: 0.5, sm: 0 } }}>
           <Typography variant="h5" fontWeight={700}>
             Como funciona?
           </Typography>
@@ -520,8 +527,8 @@ function HomePage() {
               <Box
                 key={item.title}
                 sx={{
-                  px: 2.5,
-                  py: 3,
+                  px: { xs: 2, md: 2.5 },
+                  py: { xs: 2.4, md: 3 },
                   borderRadius: "10px",
                   color: '#fff',
                   background: 'linear-gradient(160deg, #6b4cd6 0%, #5640b3 100%)',
@@ -546,7 +553,7 @@ function HomePage() {
                 <Typography fontWeight={700} sx={{ mb: 0.8 }}>
                   {item.title}
                 </Typography>
-                <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.85)' }}>
+                <Typography sx={{ fontSize: { xs: '0.82rem', md: '0.85rem' }, color: 'rgba(255,255,255,0.85)' }}>
                   {item.description}
                 </Typography>
               </Box>
@@ -562,7 +569,7 @@ function HomePage() {
         id="criar-evento"
         sx={{ pt: { xs: 4, md: 5 }, pb: { xs: 1, md: 2 }, textAlign: 'center', scrollMarginTop: { xs: 90, md: 110 } }}
       >
-        <Stack spacing={1} sx={{ mb: 2 }}>
+        <Stack spacing={1} sx={{ mb: 2, maxWidth: 760, mx: 'auto', px: { xs: 0.5, sm: 0 } }}>
           <Typography variant="h5" fontWeight={700}>
             Organiza eventos?
           </Typography>

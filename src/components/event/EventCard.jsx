@@ -43,7 +43,7 @@ function EventCard({ event, lightMeta = false }) {
     >
       <Box
         sx={{
-          height: { xs: 200, sm: 240, md: 460 },
+          height: { xs: 190, sm: 240, md: 460 },
           borderRadius: { xs: 2, md: 2 },
           overflow: 'hidden',
           bgcolor: 'background.default',
@@ -81,7 +81,7 @@ function EventCard({ event, lightMeta = false }) {
           fontWeight={800}
           sx={{
             color: lightMeta ? '#f5f0ff' : 'text.primary',
-            fontSize: { xs: '1rem', sm: '1.05rem', md: '1.25rem' },
+            fontSize: { xs: '0.98rem', sm: '1.05rem', md: '1.25rem' },
             lineHeight: 1.15,
             maxWidth: '100%',
             overflow: 'hidden',
@@ -100,7 +100,11 @@ function EventCard({ event, lightMeta = false }) {
             maxWidth: '100%',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            whiteSpace: 'normal',
+            textAlign: 'center',
           }}
         >
           {tenantName}
@@ -115,11 +119,15 @@ function EventCard({ event, lightMeta = false }) {
             variant="body2"
             color={lightMeta ? 'rgba(255,255,255,0.9)' : 'text.secondary'}
             sx={{
-              fontSize: { xs: '0.8rem', md: '0.875rem' },
-              whiteSpace: 'nowrap',
+              fontSize: { xs: '0.78rem', md: '0.875rem' },
+              whiteSpace: 'normal',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               maxWidth: { xs: 260, sm: 340, md: '100%' },
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              textAlign: 'center',
             }}
           >
             {formatEventDateRange(event)}
@@ -135,11 +143,15 @@ function EventCard({ event, lightMeta = false }) {
             variant="body2"
             color={lightMeta ? 'rgba(255,255,255,0.9)' : 'text.secondary'}
             sx={{
-              fontSize: { xs: '0.8rem', md: '0.875rem' },
-              whiteSpace: 'nowrap',
+              fontSize: { xs: '0.78rem', md: '0.875rem' },
+              whiteSpace: 'normal',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               maxWidth: { xs: 260, sm: 340, md: '100%' },
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              textAlign: 'center',
             }}
           >
             {event.location || 'Local a definir'}

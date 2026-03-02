@@ -56,11 +56,13 @@ const theme = createTheme({
   shape: { borderRadius: 10 },
   typography: {
     fontFamily: '"Space Grotesk", "Inter", system-ui, sans-serif',
-    h4: { fontWeight: 700, letterSpacing: -0.5 },
-    h5: { fontWeight: 700, letterSpacing: -0.4 },
-    h6: { fontWeight: 650, letterSpacing: -0.2 },
+    h4: { fontWeight: 700, letterSpacing: -0.5, fontSize: 'clamp(1.5rem, 5vw, 2.125rem)', lineHeight: 1.15 },
+    h5: { fontWeight: 700, letterSpacing: -0.4, fontSize: 'clamp(1.25rem, 4.4vw, 1.5rem)', lineHeight: 1.2 },
+    h6: { fontWeight: 650, letterSpacing: -0.2, fontSize: 'clamp(1.05rem, 3.8vw, 1.25rem)', lineHeight: 1.25 },
     subtitle1: { color: TEXT_2 },
-    button: { textTransform: 'none', fontWeight: 650 },
+    body1: { fontSize: 'clamp(0.94rem, 2.9vw, 1rem)', lineHeight: 1.5 },
+    body2: { fontSize: 'clamp(0.84rem, 2.7vw, 0.92rem)', lineHeight: 1.45 },
+    button: { textTransform: 'none', fontWeight: 650, lineHeight: 1.2 },
   },
   components: {
     MuiCssBaseline: {
@@ -110,6 +112,8 @@ const theme = createTheme({
           borderRadius: '10px',
           paddingInline: 16,
           paddingBlock: 10,
+          whiteSpace: 'normal',
+          textAlign: 'center',
         },
         containedPrimary: {
           backgroundImage: `linear-gradient(135deg, ${BRAND} 0%, ${LILAC} 100%)`,
@@ -135,8 +139,9 @@ const theme = createTheme({
           border: `1px solid ${alpha(BRAND, 0.3)}`,
           color: BRAND,
           fontWeight: 600,
+          maxWidth: '100%',
         },
-        label: { color: 'inherit' },
+        label: { color: 'inherit', whiteSpace: 'normal', lineHeight: 1.2, paddingTop: 3, paddingBottom: 3 },
       },
     },
     MuiOutlinedInput: {

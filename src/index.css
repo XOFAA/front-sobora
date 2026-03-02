@@ -13,10 +13,13 @@ html,
 body {
   overflow-x: hidden;
   font-family: 'Space Grotesk', sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 img {
   display: block;
+  max-width: 100%;
 }
 
 .swiper {
@@ -67,4 +70,17 @@ img {
 
 .hero-slider .swiper-pagination-bullet-active {
   background: #ffffff;
+}
+
+@media (max-width: 600px) {
+  .swiper-button-next,
+  .swiper-button-prev {
+    width: 36px;
+    height: 36px;
+  }
+
+  .swiper-button-next::after,
+  .swiper-button-prev::after {
+    font-size: 13px;
+  }
 }

@@ -20,8 +20,21 @@ function OtpInput({ length = 6, value, onChange }) {
       onChange(next.join(''))
       return
     }
+
+    if (clean.length > 1) {
+      const next = digits.slice()
+      for (let i = 0; i < clean.length && index + i < length; i += 1) {
+        next[index + i] = clean[i]
+      }
+      onChange(next.join(''))
+      const focusIndex = Math.min(index + clean.length, length - 1)
+      inputsRef.current[focusIndex]?.focus()
+      inputsRef.current[focusIndex]?.select()
+      return
+    }
+
     const next = digits.slice()
-    next[index] = clean[clean.length - 1]
+    next[index] = clean
     onChange(next.join(''))
     if (index < length - 1) {
       inputsRef.current[index + 1]?.focus()
@@ -69,6 +82,8 @@ function OtpInput({ length = 6, value, onChange }) {
             inputMode: 'numeric',
             pattern: '[0-9]*',
             maxLength: 1,
+            autoComplete: index === 0 ? 'one-time-code' : 'off',
+            name: index === 0 ? 'one-time-code' : `otp-${index + 1}`,
             style: { textAlign: 'center', fontSize: 18, lineHeight: 1.2, fontWeight: 700 },
           }}
           sx={{

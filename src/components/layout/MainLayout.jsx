@@ -72,7 +72,7 @@ function MainLayout() {
           color: '#fff',
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 62, md: 70 }, px: { xs: 1, sm: 2 } }}>
           <Stack
             direction="row"
             spacing={1.5}
@@ -84,7 +84,7 @@ function MainLayout() {
               component="img"
               src="/assets/sobora-logo.svg"
               alt="Sobora"
-              sx={{ height: 36, width: 'auto' }}
+              sx={{ height: { xs: 30, md: 36 }, width: 'auto' }}
             />
           </Stack>
           <Box sx={{ flex: 1 }} />
@@ -196,12 +196,12 @@ function MainLayout() {
           )}
         </List>
       </Drawer>
-      <Container maxWidth="lg" sx={{ pt: 4, pb: 0, flex: 1 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 2.2, md: 4 }, pb: 0, px: { xs: 1.5, sm: 2, md: 3 }, flex: 1 }}>
         {user && user?.faceEnrollment?.status !== 'VERIFIED' ? (
           <Alert
             severity="info"
             onClick={handleOpenFaceModal}
-            sx={{ mb: 3, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+            sx={{ mb: 3, display: 'flex', alignItems: 'center', cursor: 'pointer', '& .MuiAlert-message': { minWidth: 0 } }}
             action={(
               <Button color="inherit" size="small" onClick={handleOpenFaceModal}>
                 Fazer cadastro facial
@@ -225,9 +225,9 @@ function MainLayout() {
             <Alert icon={<InfoRounded fontSize="inherit" />} severity="info" sx={{ width: '100%', borderRadius: '10px' }}>
               Modelos carregados. Clique no botão abaixo para abrir a câmera
             </Alert>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary', width: '100%' }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'text.secondary', width: '100%', minWidth: 0 }}>
               <PersonOutlineRounded fontSize="small" />
-              <Typography>Usuário: {user?.name} | {user?.email}</Typography>
+              <Typography sx={{ overflowWrap: 'anywhere' }}>Usuário: {user?.name} | {user?.email}</Typography>
             </Stack>
             <Button
               variant="contained"

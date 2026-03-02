@@ -514,8 +514,8 @@ function EventDetailsPage() {
           ) : null}
         </Box>
         <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h4" fontWeight={700}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 0 }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }}>
+            <Typography variant="h4" fontWeight={700} sx={{ width: '100%' }}>
               {event.name}
             </Typography>
             <Chip
@@ -526,6 +526,7 @@ function EventDetailsPage() {
                 color: isEventPast ? '#B91C1C' : '#16A34A',
                 border: `1px solid ${isEventPast ? '#FCA5A5' : '#86EFAC'}`,
                 fontWeight: 700,
+                alignSelf: { xs: 'flex-start', sm: 'center' },
               }}
             />
           </Stack>
@@ -547,13 +548,13 @@ function EventDetailsPage() {
             </Typography>
           </Stack>
           <Stack spacing={1} sx={{ mt: 1 }}>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
               <CalendarMonthRounded fontSize="small" color="disabled" />
-              <Typography color="text.secondary">{formatEventDateRange(event)}</Typography>
+              <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>{formatEventDateRange(event)}</Typography>
             </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
               <LocationOnRounded fontSize="small" color="disabled" />
-              <Typography color="text.secondary">{event.location}</Typography>
+              <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>{event.location}</Typography>
             </Stack>
           </Stack>
           <Stack

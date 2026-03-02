@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -86,6 +86,7 @@ function LoginCodePage() {
   const [resendLeft, setResendLeft] = useState(RESEND_SECONDS)
   const [loggingIn, setLoggingIn] = useState(false)
   const [resendingCode, setResendingCode] = useState(false)
+  const lastAutoSubmittedCodeRef = useRef('')
 
   useEffect(() => {
     if (location.state?.identifier) {
@@ -132,6 +133,16 @@ function LoginCodePage() {
       setLoggingIn(false)
     }
   }
+
+  useEffect(() => {
+    const cleanCode = String(code || '').replace(/\D/g, '')
+    if (cleanCode.length !== 6) return
+    if (!identifier || loggingIn) return
+    if (lastAutoSubmittedCodeRef.current === cleanCode) return
+
+    lastAutoSubmittedCodeRef.current = cleanCode
+    handleLogin()
+  }, [code, identifier, loggingIn])
 
   const handleResend = async () => {
     if (resendingCode) return
@@ -214,3 +225,4 @@ function LoginCodePage() {
 }
 
 export default LoginCodePage
+

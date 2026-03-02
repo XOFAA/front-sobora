@@ -43,8 +43,8 @@ function Footer() {
       component="footer"
       sx={{
         mt: 0,
-        pt: 5,
-        pb: 3,
+        pt: { xs: 4, md: 5 },
+        pb: { xs: 2.5, md: 3 },
         position: 'relative',
         color: '#fff',
         '&::before': {
@@ -61,26 +61,27 @@ function Footer() {
         },
       }}
     >
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, px: { xs: 1.5, sm: 2, md: 3 } }}>
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={{ xs: 3, md: 6 }}
+          direction={{ xs: 'column', sm: 'row' }}
+          flexWrap="wrap"
+          spacing={{ xs: 2.5, md: 6 }}
           justifyContent="space-between"
         >
-          <Box sx={{ maxWidth: 360 }}>
+          <Box sx={{ maxWidth: 360, width: '100%' }}>
             <Box
               component="img"
               src="/assets/sobora-indeias.svg"
               alt="Sobora powered by Indeias"
-              sx={{ height: 60, width: 'auto', mb: 1 }}
+              sx={{ height: { xs: 48, md: 60 }, width: 'auto', mb: 1 }}
             />
-            <Typography sx={{ color: 'rgba(255,255,255,0.78)' }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontSize: { xs: '0.9rem', md: '1rem' } }}>
               Marketplace de eventos para descobrir experiências, comprar ingressos e viver momentos que ficam.
             </Typography>
           </Box>
 
           {FOOTER_LINKS.map((group) => (
-            <Box key={group.title}>
+            <Box key={group.title} sx={{ minWidth: { xs: '48%', md: 150 } }}>
               <Typography fontWeight={700} sx={{ mb: 1 }}>
                 {group.title}
               </Typography>

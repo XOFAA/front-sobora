@@ -224,8 +224,8 @@ function CheckoutPage() {
 
       <Card elevation={0} sx={{ borderRadius: '10px', border: '1px solid #E2E8F0' }}>
         <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h4" fontWeight={700}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 0 }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }}>
+            <Typography variant="h4" fontWeight={700} sx={{ width: '100%' }}>
               {event?.name || 'Seu evento'}
             </Typography>
             <Chip
@@ -236,6 +236,7 @@ function CheckoutPage() {
                 color: '#15803D',
                 border: '1px solid #86EFAC',
                 fontWeight: 700,
+                alignSelf: { xs: 'flex-start', sm: 'center' },
               }}
             />
           </Stack>
