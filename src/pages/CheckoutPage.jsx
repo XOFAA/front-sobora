@@ -36,40 +36,57 @@ function formatPrice(value) {
 }
 
 function StepHeader({ currentStep }) {
+  const currentLabel = STEPS[currentStep] || STEPS[0]
+
   return (
-    <Stack direction="row" justifyContent="center" spacing={{ xs: 1, md: 3 }} sx={{ py: 1 }}>
-      {STEPS.map((label, index) => {
-        const active = index === currentStep
-        const done = index < currentStep
-        return (
-          <Stack key={label} spacing={0.6} alignItems="center" sx={{ minWidth: { xs: 62, md: 90 } }}>
-            <Box
-              sx={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 12,
-                fontWeight: 700,
-                bgcolor: active || done ? '#6D4CE7' : '#E5E7EB',
-                color: active || done ? '#fff' : '#94A3B8',
-              }}
-            >
-              {index + 1}
-            </Box>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: active ? 700 : 500,
-                color: active ? '#6D4CE7' : '#94A3B8',
-              }}
-            >
-              {label}
-            </Typography>
-          </Stack>
-        )
-      })}
+    <Stack spacing={0.9}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: { xs: 0.5, md: 0 } }}>
+        <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>
+          Passo {currentStep + 1} de {STEPS.length}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{ color: '#6D4CE7', fontWeight: 700, maxWidth: '60%', textAlign: 'right' }}
+          noWrap
+        >
+          {currentLabel}
+        </Typography>
+      </Stack>
+      <Stack direction="row" justifyContent="center" spacing={{ xs: 0.8, md: 3 }} sx={{ py: 0.3 }}>
+        {STEPS.map((label, index) => {
+          const active = index === currentStep
+          const done = index < currentStep
+          return (
+            <Stack key={label} spacing={0.6} alignItems="center" sx={{ minWidth: { xs: 60, md: 90 } }}>
+              <Box
+                sx={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  bgcolor: active || done ? '#6D4CE7' : '#E5E7EB',
+                  color: active || done ? '#fff' : '#94A3B8',
+                }}
+              >
+                {index + 1}
+              </Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: active ? 700 : 500,
+                  color: active ? '#6D4CE7' : '#94A3B8',
+                  fontSize: { xs: '0.68rem', sm: '0.75rem' },
+                }}
+              >
+                {label}
+              </Typography>
+            </Stack>
+          )
+        })}
+      </Stack>
     </Stack>
   )
 }
@@ -216,7 +233,18 @@ function CheckoutPage() {
 
   return (
     <Stack spacing={2.2} sx={{ pb: { xs: 2, md: 3 } }}>
-      <Card elevation={0} sx={{ borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+      <Card
+        elevation={0}
+        sx={{
+          borderRadius: '10px',
+          border: '1px solid #E2E8F0',
+          position: 'sticky',
+          top: { xs: 70, md: 84 },
+          zIndex: 1090,
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(6px)',
+        }}
+      >
         <CardContent sx={{ py: 1.2 }}>
           <StepHeader currentStep={step} />
         </CardContent>
