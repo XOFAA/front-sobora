@@ -379,7 +379,7 @@ function HomePage() {
               const priceCaption = isFreeOnly ? 'Ingresso' : 'Ingressos a partir de'
               const freeLimitLabel =
                 isFreeOnly && freeLimit
-                  ? `Resgate de ate ${freeLimit} por usuario`
+                  ? `Resgate de até ${freeLimit} por usuário`
                   : null
 
               return (

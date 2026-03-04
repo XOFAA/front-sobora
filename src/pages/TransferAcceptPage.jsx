@@ -43,7 +43,7 @@ function TransferAcceptPage() {
               onChange={(e) => setForm((prev) => ({ ...prev, toCpf: e.target.value }))}
             />
             <TextField
-              label="Email"
+              label="E-mail"
               value={form.toEmail}
               onChange={(e) => setForm((prev) => ({ ...prev, toEmail: e.target.value }))}
             />

@@ -91,7 +91,7 @@ function OrganizerPage() {
         setEvents(Array.isArray(data?.events) ? data.events : [])
       } catch (err) {
         if (!active) return
-        setError(err?.response?.data?.message || 'Nao foi possivel carregar o organizador.')
+        setError(err?.response?.data?.message || 'Não foi possível carregar o organizador.')
       } finally {
         if (active) setLoading(false)
       }
@@ -132,7 +132,7 @@ function OrganizerPage() {
   }
 
   if (!organizer) {
-    return <Typography color="text.secondary">Organizador nao encontrado.</Typography>
+    return <Typography color="text.secondary">Organizador não encontrado.</Typography>
   }
 
   const organizerName = organizer.tradeName || organizer.name || 'Organizador'
@@ -166,7 +166,7 @@ function OrganizerPage() {
               <Box>
                 <Typography variant="h5" fontWeight={700}>{organizerName}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {organizer.description || 'Sem descricao informada.'}
+                  {organizer.description || 'Sem descrição informada.'}
                 </Typography>
               </Box>
             </Stack>
@@ -312,7 +312,7 @@ function OrganizerPage() {
         </Grid>
       ) : (
         <Typography color="text.secondary" align="center">
-          Este organizador ainda nao possui eventos publicados.
+          Este organizador ainda não possui eventos publicados.
         </Typography>
       )}
 

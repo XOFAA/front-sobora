@@ -138,7 +138,7 @@ function EventDetailsPage() {
         const activeTickets = Array.from(mergedById.values()).filter((ticket) => ticket.isActive !== false)
         setTicketTypes(activeTickets)
       } catch (err) {
-        if (active) setError('NÃ£o foi possÃ­vel carregar o evento.')
+        if (active) setError('Não foi possível carregar o evento.')
       } finally {
         if (active) setLoading(false)
       }
@@ -272,7 +272,7 @@ function EventDetailsPage() {
     setError('')
     setSuccess('')
     if (isEventPast) {
-      setError('Este evento ja encerrou e nao aceita novas compras ou resgates.')
+      setError('Este evento já encerrou e não aceita novas compras ou resgates.')
       return
     }
     const selected = Object.entries(quantities)
@@ -339,7 +339,7 @@ function EventDetailsPage() {
           name: event.name,
           dateRange: formatEventDateRange(event),
           location: event.location,
-          statusLabel: isEventPast ? 'Encerrado' : 'DisponÃ­vel',
+          statusLabel: isEventPast ? 'Encerrado' : 'Disponível',
           organizer: {
             name: organizerName,
             email: organizerContactEmail || '',
@@ -406,7 +406,7 @@ function EventDetailsPage() {
   }
 
   if (!event) {
-    return <Typography color="text.secondary">Evento nÃ£o encontrado.</Typography>
+    return <Typography color="text.secondary">Evento não encontrado.</Typography>
   }
 
   const organizerName = event?.tenant?.tradeName || event?.tenant?.name || 'Organizador'
@@ -419,7 +419,7 @@ function EventDetailsPage() {
   const ticketList = (
     <Stack spacing={2}>
       {isEventPast ? (
-        <Alert severity="warning">Evento encerrado. Nao ha mais selecao de ingressos.</Alert>
+        <Alert severity="warning">Evento encerrado. Não há mais seleção de ingressos.</Alert>
       ) : ticketTypes.length ? (
         orderedTicketTypes.map((ticket) => {
           const qty = quantities[ticket.id] || 0
@@ -493,7 +493,7 @@ function EventDetailsPage() {
               </Stack>
               {(ticket.price || 0) === 0 && Number.isInteger(ticket.maxFreePerUser) && ticket.maxFreePerUser > 0 ? (
                 <Typography variant="caption" color="text.secondary">
-                  Limite por usuario: {ticket.maxFreePerUser}
+                  Limite por usuário: {ticket.maxFreePerUser}
                 </Typography>
               ) : null}
               {isFixedHalfTicket ? (
@@ -518,24 +518,24 @@ function EventDetailsPage() {
                         <li>Carteira de estudante (com validade)</li>
                         <li>Carteirinha do id jovem</li>
                         <li>Documento que comprove 60+ anos</li>
-                        <li>Laudo mÃ©dico (PCD)</li>
+                        <li>Laudo médico (PCD)</li>
                       </Box>
                       <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                        *ApresentaÃ§Ã£o obrigatÃ³ria na entrada
+                        *Apresentação obrigatória na entrada
                       </Typography>
                     </Box>
                   ) : null}
                 </Box>
               ) : (
                 <Typography variant="caption" color="text.secondary">
-                  Meia-entrada nÃ£o disponÃ­vel
+                  Meia-entrada não disponível
                 </Typography>
               )}
             </Stack>
           )
         })
       ) : (
-        <Typography color="text.secondary">Nenhum ingresso disponÃ­vel.</Typography>
+        <Typography color="text.secondary">Nenhum ingresso disponível.</Typography>
       )}
     </Stack>
   )
@@ -634,7 +634,7 @@ function EventDetailsPage() {
                 '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
               }}
             >
-              Adicionar ao calendÃ¡rio
+              Adicionar ao calendário
             </Button>
             <Button
               variant="outlined"
@@ -731,7 +731,7 @@ function EventDetailsPage() {
                   })}
                 </Stack>
               ) : (
-                <Typography color="text.secondary">DescriÃ§Ã£o ainda nÃ£o informada.</Typography>
+                <Typography color="text.secondary">Descrição ainda não informada.</Typography>
               )}
               <Divider sx={{ my: 2 }} />
               <Card
@@ -788,7 +788,7 @@ function EventDetailsPage() {
                         disabled={!organizerTenantId}
                         sx={{ borderRadius: '10px' }}
                       >
-                        Ver pÃ¡gina do organizador
+                        Ver página do organizador
                       </Button>
                     </Stack>
                   </Stack>
@@ -807,7 +807,7 @@ function EventDetailsPage() {
               {ticketList}
               <Divider sx={{ my: 2 }} />
               {isEventPast ? (
-                <Alert severity="warning">Evento encerrado. Compras e resgates indisponiveis.</Alert>
+                <Alert severity="warning">Evento encerrado. Compras e resgates indisponíveis.</Alert>
               ) : (
                 <Stack spacing={1}>
                   <Typography fontWeight={600}>
@@ -942,7 +942,7 @@ function EventDetailsPage() {
                 color: 'text.secondary',
               }}
             >
-              Mapa do evento indisponÃ­vel
+              Mapa do evento indisponível
             </Box>
           )}
         </DialogContent>
@@ -969,7 +969,7 @@ function EventDetailsPage() {
                 Ingresso resgatado com sucesso
               </Typography>
               <Typography variant="body2" color="text.secondary" align="center">
-                Seus ingressos jÃ¡ estÃ£o disponÃ­veis para visualizaÃ§Ã£o.
+                Seus ingressos já estão disponíveis para visualização.
               </Typography>
             </Stack>
             <Button

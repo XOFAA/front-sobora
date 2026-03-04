@@ -15,10 +15,10 @@ function SecurityInfoSection({ sx }) {
     >
       <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 } }}>
         <Typography variant="h5" fontWeight={700} sx={{ color: '#1f2937' }}>
-          Compra <Box component="span" sx={{ color: '#6d4ce7' }}>segura</Box> e informacoes importantes
+          Compra <Box component="span" sx={{ color: '#6d4ce7' }}>segura</Box> e informações importantes
         </Typography>
         <Typography color="text.secondary">
-          Na Sobora, sua seguranca e a nossa prioridade.
+          Na Sobora, sua segurança é a nossa prioridade.
         </Typography>
       </Stack>
 
@@ -35,7 +35,7 @@ function SecurityInfoSection({ sx }) {
           >
             <CardContent>
               <Typography fontWeight={700} sx={{ textAlign: 'center', mb: 1.5 }}>
-                Metodos de pagamento
+                Métodos de pagamento
               </Typography>
               <Stack direction="row" spacing={1.5} justifyContent="center" alignItems="center" sx={{ flexWrap: 'wrap' }}>
                 {[
@@ -56,7 +56,7 @@ function SecurityInfoSection({ sx }) {
                 ))}
               </Stack>
               <Typography sx={{ textAlign: 'center', mt: 2, fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
-                Parcele a compra de seus ingressos em ate 12x*
+                Parcele a compra de seus ingressos em até 12x*
               </Typography>
             </CardContent>
           </Card>
@@ -73,10 +73,10 @@ function SecurityInfoSection({ sx }) {
           >
             <CardContent>
               <Typography fontWeight={700} sx={{ textAlign: 'center', mb: 1.5 }}>
-                Seguranca garantida
+                Segurança garantida
               </Typography>
               <Typography sx={{ textAlign: 'center', fontSize: '0.92rem', color: 'rgba(255,255,255,0.92)' }}>
-                Compra 100% segura: SSL, LGPD, antifraude em tempo real, QR Code unico, biometria facial e garantia de
+                Compra 100% segura: SSL, LGPD, antifraude em tempo real, QR Code único, biometria facial e garantia de
                 reembolso em caso de cancelamento do evento.
               </Typography>
             </CardContent>
@@ -95,12 +95,12 @@ function SecurityInfoSection({ sx }) {
         <CardContent>
           <Stack spacing={1.5} sx={{ textAlign: 'center' }}>
             <Typography fontWeight={700} sx={{ color: '#f59e0b' }}>
-              Notou algo suspeito nesta pagina?
+              Notou algo suspeito nesta página?
             </Typography>
             <Typography sx={{ color: '#7c5b1c', fontSize: '0.95rem' }}>
-              Se voce identificar qualquer comportamento estranho, precos diferentes dos praticados oficialmente, ou
-              suspeitar que este anuncio e fraudulento, denuncie imediatamente. Nossa equipe de seguranca investiga
-              todas as denuncias.
+              Se você identificar qualquer comportamento estranho, preços diferentes dos praticados oficialmente, ou
+              suspeitar que este anúncio é fraudulento, denuncie imediatamente. Nossa equipe de segurança investiga
+              todas as denúncias.
             </Typography>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -118,7 +118,7 @@ function SecurityInfoSection({ sx }) {
                   '&:hover': { bgcolor: '#ea8d00' },
                 }}
               >
-                Denunciar pagina
+                Denunciar página
               </Button>
               <Button
                 variant="outlined"
@@ -150,10 +150,10 @@ function SecurityInfoSection({ sx }) {
                 Canais oficiais de suporte:
               </Typography>
               <Typography sx={{ color: '#7c5b1c', fontSize: '0.9rem' }}>
-                Webchat: disponivel 24 horas por dia
+                Webchat: disponível 24 horas por dia
               </Typography>
               <Typography sx={{ color: '#7c5b1c', fontSize: '0.9rem' }}>
-                E-mail: suporte@sobora.com.br (respondemos em ate 24 horas)
+                E-mail: suporte@sobora.com.br (respondemos em até 24 horas)
               </Typography>
             </Box>
           </Stack>

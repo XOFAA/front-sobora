@@ -48,7 +48,7 @@ const authFieldSx = {
 
 const selectMenuItems = [
   { value: 'phone', label: 'Telefone', icon: <PhoneIphoneRounded fontSize="small" /> },
-  { value: 'email', label: 'Email', icon: <EmailRounded fontSize="small" /> },
+  { value: 'email', label: 'E-mail', icon: <EmailRounded fontSize="small" /> },
   { value: 'cpf', label: 'CPF', icon: <BadgeRounded fontSize="small" /> },
 ]
 

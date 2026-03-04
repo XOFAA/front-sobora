@@ -514,7 +514,7 @@ function MyTicketsPage() {
   }
 
   const getTransferStatusLabel = (status) => {
-    if (status === 'COMPLETED') return { label: 'Concluida', color: 'success' }
+    if (status === 'COMPLETED') return { label: 'Concluída', color: 'success' }
     if (status === 'CANCELED') return { label: 'Cancelada', color: 'default' }
     if (status === 'EXPIRED') return { label: 'Expirada', color: 'default' }
     return { label: 'Pendente', color: 'warning' }
@@ -543,7 +543,7 @@ function MyTicketsPage() {
 
     autoTable(doc, {
       startY: 80,
-      head: [['Evento', 'Tipo', 'Destinatario', 'Telefone', 'Status', 'Enviado em', 'Aceito em']],
+      head: [['Evento', 'Tipo', 'Destinatário', 'Telefone', 'Status', 'Enviado em', 'Aceito em']],
       body: rows,
       styles: { fontSize: 9, cellPadding: 4 },
       headStyles: { fillColor: [109, 40, 217] },
@@ -1026,7 +1026,7 @@ function MyTicketsPage() {
               phone={transferForm.phone}
               onCountryChange={(value) => setTransferForm((prev) => ({ ...prev, countryIso2: value }))}
               onPhoneChange={(value) => setTransferForm((prev) => ({ ...prev, phone: value }))}
-              label="Telefone do destinatario"
+              label="Telefone do destinatário"
             />
             <TextField
               label="Mensagem (opcional)"

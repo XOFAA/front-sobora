@@ -29,7 +29,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
 
-const STEPS = ['Ingressos', 'Dados', 'Pagamento', 'Confirmacao']
+const STEPS = ['Ingressos', 'Dados', 'Pagamento', 'Confirmação']
 
 function formatPrice(value) {
   return ((value ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })

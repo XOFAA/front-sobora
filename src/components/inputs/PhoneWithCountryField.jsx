@@ -20,10 +20,10 @@ function PhoneWithCountryField({
   return (
     <Stack direction="row" spacing={1.2}>
       <FormControl sx={{ width: { xs: 132, sm: 190 }, flexShrink: 0 }}>
-        <InputLabel id={`${selectId}-label`}>Pais / DDI</InputLabel>
+        <InputLabel id={`${selectId}-label`}>País / DDI</InputLabel>
         <Select
           labelId={`${selectId}-label`}
-          label="Pais / DDI"
+          label="País / DDI"
           value={countryIso2}
           onChange={(event) => onCountryChange(event.target.value)}
           renderValue={(value) => {
@@ -68,7 +68,7 @@ function PhoneWithCountryField({
         label={label}
         value={formatPhoneByCountry(phone, selectedCountry.iso2)}
         onChange={(event) => onPhoneChange(onlyDigits(event.target.value))}
-        placeholder="Somente numeros"
+        placeholder="Somente números"
       />
     </Stack>
   )

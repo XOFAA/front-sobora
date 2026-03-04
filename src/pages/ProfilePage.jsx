@@ -254,7 +254,7 @@ function ProfilePage() {
                     onChange={(event) => setProfileMethod(event.target.value)}
                   >
                     <MenuItem value="phone"><Stack direction="row" spacing={1} alignItems="center"><PhoneIphoneRounded fontSize="small" /><Typography>Telefone</Typography></Stack></MenuItem>
-                    <MenuItem value="email"><Stack direction="row" spacing={1} alignItems="center"><EmailRounded fontSize="small" /><Typography>Email</Typography></Stack></MenuItem>
+                    <MenuItem value="email"><Stack direction="row" spacing={1} alignItems="center"><EmailRounded fontSize="small" /><Typography>E-mail</Typography></Stack></MenuItem>
                     <MenuItem value="cpf"><Stack direction="row" spacing={1} alignItems="center"><BadgeRounded fontSize="small" /><Typography>CPF</Typography></Stack></MenuItem>
                   </Select>
                 </FormControl>
