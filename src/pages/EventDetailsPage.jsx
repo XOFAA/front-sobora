@@ -14,6 +14,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
+import LockRounded from '@mui/icons-material/LockRounded'
 import Grid from '@mui/material/Grid'
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded'
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded'
@@ -34,6 +35,20 @@ import { useAuth } from '../contexts/AuthContext'
 import SecurityInfoSection from '../components/common/SecurityInfoSection'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
+const FIGMA_GREEN_GRADIENT = 'linear-gradient(90deg, #34A853 0%, #315951 100%)'
+const FIGMA_OUTLINED_ACTION_SX = {
+  borderRadius: '10px',
+  borderColor: '#6E51C5',
+  color: '#6E51C5',
+  fontWeight: 600,
+  px: 1.6,
+  py: 0.9,
+  '& .MuiButton-startIcon': { color: '#6E51C5' },
+  '&:hover': {
+    borderColor: '#5747A8',
+    backgroundColor: 'rgba(110, 81, 197, 0.08)',
+  },
+}
 
 const resolveImage = (value) => {
   if (!value) return ''
@@ -76,6 +91,17 @@ function renderDescriptionWithEmbeds(html) {
     }
   }
   return blocks
+}
+
+function normalizeDescriptionHtml(html) {
+  if (!html) return ''
+  return String(html)
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\u00A0/g, ' ')
+    .replace(/-\s*<br\s*\/?>\s*/gi, '')
+    .replace(/-\s*<\/p>\s*<p>\s*/gi, '')
+    .replace(/([\p{L}])\s*<br\s*\/?>\s*([\p{L}])/gu, '$1$2')
+    .replace(/([\p{L}])\s*<\/p>\s*<p>\s*([\p{Ll}])/gu, '$1$2')
 }
 
 function isFixedHalfTicketType(ticket) {
@@ -239,6 +265,16 @@ function EventDetailsPage() {
     orphanHalfTickets.forEach((ticket) => ordered.push(ticket))
     return ordered
   }, [ticketTypes])
+  const baseTicketIdsWithHalfVariant = useMemo(() => {
+    const ids = new Set()
+    ticketTypes.forEach((ticket) => {
+      const parentId = ticket?.parentTicketTypeId
+      if (parentId && isFixedHalfTicketType(ticket)) {
+        ids.add(parentId)
+      }
+    })
+    return ids
+  }, [ticketTypes])
 
   const formatPrice = (value) =>
     ((value ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -267,6 +303,13 @@ function EventDetailsPage() {
     () => renderDescriptionWithEmbeds(event?.description || ''),
     [event?.description],
   )
+  const importantInfoItems = useMemo(() => {
+    const raw = String(event?.importantInfo || '')
+    return raw
+      .split(/\r?\n/g)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }, [event?.importantInfo])
 
   const handleCheckout = () => {
     setError('')
@@ -285,6 +328,7 @@ function EventDetailsPage() {
           ticketTypeId,
           quantity,
           name: ticketType?.name || 'Ingresso',
+          description: ticketType?.description || '',
           price: unitPrice,
           isHalf,
         }
@@ -339,11 +383,14 @@ function EventDetailsPage() {
           name: event.name,
           dateRange: formatEventDateRange(event),
           location: event.location,
+          importantInfo: event.importantInfo || '',
+          lastBatchAlertEnabled: Boolean(event.lastBatchAlertEnabled),
           statusLabel: isEventPast ? 'Encerrado' : 'Disponível',
           organizer: {
             name: organizerName,
             email: organizerContactEmail || '',
             tenantId: organizerTenantId || '',
+            logoUrl: organizerLogo || '',
           },
         },
         items: selected,
@@ -401,6 +448,19 @@ function EventDetailsPage() {
     return lastDate.getTime() < Date.now()
   })()
 
+  useEffect(() => {
+    const className = 'has-event-mobile-fixed-buy'
+    if (!isEventPast) {
+      document.body.classList.add(className)
+    } else {
+      document.body.classList.remove(className)
+    }
+
+    return () => {
+      document.body.classList.remove(className)
+    }
+  }, [isEventPast])
+
   if (loading) {
     return <Typography color="text.secondary">Carregando evento...</Typography>
   }
@@ -413,7 +473,7 @@ function EventDetailsPage() {
   const organizerLogoRaw = event?.tenant?.logoUrl || ''
   const organizerLogo = organizerLogoRaw ? resolveImage(organizerLogoRaw) : ''
   const organizerTenantId = event?.tenant?.id || event?.tenantId || ''
-  const organizerDescription = event?.tenant?.description || 'Conheca mais sobre este organizador.'
+  const organizerDescription = event?.tenant?.description || 'Conheça mais sobre este organizador.'
   const organizerContactEmail = event?.tenant?.contactEmail || ''
 
   const ticketList = (
@@ -426,7 +486,9 @@ function EventDetailsPage() {
           const maxSelectable = getMaxSelectableByTicket(ticket)
           const hasReachedLimit = qty >= maxSelectable
           const isFixedHalfTicket = isFixedHalfTicketType(ticket)
+          const hasHalfVariant = baseTicketIdsWithHalfVariant.has(ticket.id)
           const unitPrice = ticket.price || 0
+          const isFreeTicket = unitPrice === 0
           return (
             <Stack
               key={ticket.id}
@@ -442,7 +504,7 @@ function EventDetailsPage() {
                     </Typography>
                   ) : null}
                 </Box>
-                <Typography fontWeight={700} sx={{ color: '#6d4ce7' }}>
+                <Typography fontWeight={700} sx={{ color: '#6E51C5' }}>
                   {formatTicketPrice(unitPrice)}
                 </Typography>
               </Stack>
@@ -507,30 +569,25 @@ function EventDetailsPage() {
                         borderRadius: 1.5,
                         bgcolor: '#fff7ed',
                         border: '1px solid #fdba74',
-                        color: '#9a3412',
+                        color: '#000',
                         fontSize: '0.82rem',
                       }}
                     >
-                      <Typography fontWeight={700} sx={{ mb: 0.5, color: '#ea580c' }}>
-                        Documentos aceitos para meia-entrada:
+                      <Typography fontWeight={700} sx={{ mb: 0.5, color: '#FF9800' }}>
+                        Documentos aceitos: <span style={{color:"#000",fontSize:'15px',fontWeight:"400"}}>Carteira de estudante, ID Jovem, 60+ ou laudo médico (PCD)</span>
                       </Typography>
-                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                        <li>Carteira de estudante (com validade)</li>
-                        <li>Carteirinha do id jovem</li>
-                        <li>Documento que comprove 60+ anos</li>
-                        <li>Laudo médico (PCD)</li>
-                      </Box>
+                   
                       <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
                         *Apresentação obrigatória na entrada
                       </Typography>
                     </Box>
                   ) : null}
                 </Box>
-              ) : (
+              ) : !isFreeTicket && !hasHalfVariant ? (
                 <Typography variant="caption" color="text.secondary">
                   Meia-entrada não disponível
                 </Typography>
-              )}
+              ) : null}
             </Stack>
           )
         })
@@ -559,7 +616,7 @@ function EventDetailsPage() {
               {event.name}
             </Typography>
             <Chip
-              label={isEventPast ? 'Encerrado' : 'Disponivel'}
+              label={isEventPast ? 'Encerrado' : 'Disponível'}
               sx={{
                 borderRadius: '10px',
                 bgcolor: isEventPast ? '#FEE2E2' : '#DCFCE7',
@@ -579,7 +636,7 @@ function EventDetailsPage() {
           >
             <Avatar
               src={organizerLogo || undefined}
-              sx={{ width: 30, height: 30, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.8rem' }}
+              sx={{ width: 30, height: 30, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6E51C5', fontSize: '0.8rem' }}
             >
               {String(organizerName).slice(0, 1).toUpperCase()}
             </Avatar>
@@ -606,16 +663,7 @@ function EventDetailsPage() {
               variant="outlined"
               startIcon={<MapRounded />}
               onClick={() => setMapOpen(true)}
-              sx={{
-                borderRadius: '10px',
-                borderColor: '#CBD5E1',
-                color: '#475569',
-                fontWeight: 600,
-                px: 1.6,
-                py: 0.9,
-                '& .MuiButton-startIcon': { color: '#64748B' },
-                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
-              }}
+              sx={FIGMA_OUTLINED_ACTION_SX}
             >
               Mapa do evento
             </Button>
@@ -623,16 +671,7 @@ function EventDetailsPage() {
               variant="outlined"
               startIcon={<EventAvailableRounded />}
               onClick={handleAddToCalendar}
-              sx={{
-                borderRadius: '10px',
-                borderColor: '#CBD5E1',
-                color: '#475569',
-                fontWeight: 600,
-                px: 1.6,
-                py: 0.9,
-                '& .MuiButton-startIcon': { color: '#64748B' },
-                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
-              }}
+              sx={FIGMA_OUTLINED_ACTION_SX}
             >
               Adicionar ao calendário
             </Button>
@@ -640,16 +679,7 @@ function EventDetailsPage() {
               variant="outlined"
               startIcon={<DirectionsRounded />}
               onClick={handleDirections}
-              sx={{
-                borderRadius: '10px',
-                borderColor: '#CBD5E1',
-                color: '#475569',
-                fontWeight: 600,
-                px: 1.6,
-                py: 0.9,
-                '& .MuiButton-startIcon': { color: '#64748B' },
-                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
-              }}
+              sx={FIGMA_OUTLINED_ACTION_SX}
             >
               Saiba como chegar
             </Button>
@@ -657,16 +687,7 @@ function EventDetailsPage() {
               variant="outlined"
               startIcon={<ShareRounded />}
               onClick={handleShare}
-              sx={{
-                borderRadius: '10px',
-                borderColor: '#CBD5E1',
-                color: '#475569',
-                fontWeight: 600,
-                px: 1.6,
-                py: 0.9,
-                '& .MuiButton-startIcon': { color: '#64748B' },
-                '&:hover': { borderColor: '#94A3B8', backgroundColor: '#F8FAFC' },
-              }}
+              sx={FIGMA_OUTLINED_ACTION_SX}
             >
               Compartilhar
             </Button>
@@ -678,7 +699,7 @@ function EventDetailsPage() {
         <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
+              <Typography variant="h6" fontWeight={700}  sx={{ color: '#6E51C5' }} gutterBottom>
                 Sobre o evento
               </Typography>
               <Divider sx={{ mb: 2 }} />
@@ -720,12 +741,17 @@ function EventDetailsPage() {
                         key={`html-${index}`}
                         sx={{
                           '& img': { maxWidth: '100%', borderRadius: 2 },
-                          '& p': { marginTop: 0 },
+                          '& p': { mt: 0, mb: 1.4, lineHeight: 1.6 },
+                          '& ul, & ol': { mt: 0.6, mb: 1.4, pl: 3 },
+                          '& li': { mb: 0.35, lineHeight: 1.55 },
+                          '& h1, & h2, & h3, & h4': { mt: 1.2, mb: 0.8, lineHeight: 1.3 },
+                          '& strong': { fontWeight: 700 },
                           '& a': { wordBreak: 'break-word' },
-                          wordBreak: 'break-word',
-                          overflowWrap: 'anywhere',
+                          wordBreak: 'normal',
+                          overflowWrap: 'break-word',
+                          whiteSpace: 'normal',
                         }}
-                        dangerouslySetInnerHTML={{ __html: block.html }}
+                        dangerouslySetInnerHTML={{ __html: normalizeDescriptionHtml(block.html) }}
                       />
                     )
                   })}
@@ -734,6 +760,35 @@ function EventDetailsPage() {
                 <Typography color="text.secondary">Descrição ainda não informada.</Typography>
               )}
               <Divider sx={{ my: 2 }} />
+              {importantInfoItems.length ? (
+                <>
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      borderRadius: '10px',
+                      borderColor: '#6E51C5',
+                      bgcolor: 'rgba(110, 81, 197, 0.10)',
+                      boxShadow: 'none',
+                      mb: 2,
+                    }}
+                  >
+                    <CardContent sx={{ p: 2 }}>
+                      <Stack spacing={1.1}>
+                        <Typography fontWeight={700} sx={{ color: '#6E51C5' }}>
+                          Informações importantes
+                        </Typography>
+                        <Box component="ul" sx={{ m: 0, pl: 2.5, color: '#334155' }}>
+                          {importantInfoItems.map((item, index) => (
+                            <Box component="li" key={`important-info-${index}`} sx={{ mb: 0.75 }}>
+                              <Typography variant="body2">{item}</Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : null}
               <Card
                 variant="outlined"
                 sx={{
@@ -747,7 +802,7 @@ function EventDetailsPage() {
                     <Stack direction="row" spacing={1.5} alignItems="center">
                       <Avatar
                         src={organizerLogo || undefined}
-                        sx={{ width: 40, height: 40, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7' }}
+                        sx={{ width: 40, height: 40, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6E51C5' }}
                       >
                         {String(organizerName).slice(0, 1).toUpperCase()}
                       </Avatar>
@@ -800,9 +855,17 @@ function EventDetailsPage() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
+                <Typography variant="h6" fontWeight={600}  sx={{ color: '#6E51C5' }} gutterBottom>
                   Selecione seus ingressos
                 </Typography>
+              {event?.lastBatchAlertEnabled ? (
+                <Alert
+                  severity="info"
+                  sx={{ borderRadius: '10px', mb: 1.2, '& .MuiAlert-message': { fontSize: 12 } }}
+                >
+                  <strong>Último lote!</strong> Restam poucos ingressos
+                </Alert>
+              ) : null}
               <Divider sx={{ mb: 2 }} />
               {ticketList}
               <Divider sx={{ my: 2 }} />
@@ -818,14 +881,33 @@ function EventDetailsPage() {
                   </Typography>
                   {error ? <Alert severity="error">{error}</Alert> : null}
                   {success ? <Alert severity="success">{success}</Alert> : null}
-                  <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
+                  <Button
+                    variant="contained"
+                    onClick={handleCheckout}
+                    disabled={!ticketTypes.length || redeemLoading}
+                    sx={
+                      isFreeOnlyEvent
+                        ? undefined
+                        : {
+                            background: FIGMA_GREEN_GRADIENT,
+                            '&:hover': { opacity: 0.93 },
+                          }
+                    }
+                  >
                     {redeemLoading
                       ? 'Resgatando...'
                       : isFreeOnlyEvent
                         ? 'Resgatar ingresso'
-                        : 'Finalizar compra'}
+                        : 'Continuar compra'}
                   </Button>
+                <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mt: 1.2 }}>
+                <LockRounded sx={{ color: '#16A34A', fontSize: 16 }} />
+                <Typography variant="caption" sx={{ color: '#16A34A' }}>
+                  Compra 100% segura
+                </Typography>
+              </Stack>
                 </Stack>
+                
               )}
             </CardContent>
           </Card>
@@ -892,7 +974,19 @@ function EventDetailsPage() {
             </Typography>
             {error ? <Alert severity="error">{error}</Alert> : null}
             {success ? <Alert severity="success">{success}</Alert> : null}
-            <Button variant="contained" onClick={handleCheckout} disabled={!ticketTypes.length || redeemLoading}>
+            <Button
+              variant="contained"
+              onClick={handleCheckout}
+              disabled={!ticketTypes.length || redeemLoading}
+              sx={
+                isFreeOnlyEvent
+                  ? undefined
+                  : {
+                      background: FIGMA_GREEN_GRADIENT,
+                      '&:hover': { opacity: 0.93 },
+                    }
+              }
+            >
               {redeemLoading
                 ? 'Resgatando...'
                 : isFreeOnlyEvent
@@ -986,7 +1080,3 @@ function EventDetailsPage() {
 }
 
 export default EventDetailsPage
-
-
-
-

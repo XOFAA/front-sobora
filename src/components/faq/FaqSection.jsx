@@ -32,8 +32,8 @@ function FaqSection() {
   return (
     <Box>
       <Stack spacing={1} sx={{ mb: 2, textAlign: 'center' }}>
-        <Typography variant="h5" fontWeight={700}>
-          Perguntas frequentes
+        <Typography fontSize={24}>
+          <span style={{fontWeight:"bolder"}}>Perguntas</span> frequentes
         </Typography>
         <Typography color="text.secondary">
           Respostas rápidas para você comprar com segurança.

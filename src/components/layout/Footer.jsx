@@ -23,7 +23,7 @@ const FOOTER_LINKS = [
     title: 'Ajuda',
     items: [
       { label: 'Central de ajuda', path: '/login' },
-      { label: 'Politica de cancelamento', path: '/login' },
+      { label: 'Política de cancelamento', path: '/login' },
       { label: 'Contato', path: '/login' },
     ],
   },
@@ -45,6 +45,12 @@ function Footer() {
         mt: 0,
         pt: { xs: 4, md: 5 },
         pb: { xs: 2.5, md: 3 },
+        'body.has-event-mobile-fixed-buy &': {
+          pb: {
+            xs: 'calc(2.5rem + 96px + env(safe-area-inset-bottom, 0px))',
+            md: 3,
+          },
+        },
         position: 'relative',
         color: '#fff',
         '&::before': {

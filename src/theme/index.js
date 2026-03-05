@@ -3,6 +3,8 @@ import { createTheme, alpha } from '@mui/material/styles'
 const BRAND = '#6D28D9'
 const LILAC = '#A78BFA'
 const TEAL = '#22D3EE'
+const FIGMA_PURPLE_GRADIENT = 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)'
+const CONTAINED_HEIGHT = 46
 
 const BG = '#F7F7FB'
 const SURFACE = '#FFFFFF'
@@ -115,14 +117,34 @@ const theme = createTheme({
           whiteSpace: 'normal',
           textAlign: 'center',
         },
-        containedPrimary: {
-          backgroundImage: `linear-gradient(135deg, ${BRAND} 0%, ${LILAC} 100%)`,
+        contained: {
+          minHeight: CONTAINED_HEIGHT,
+          height: CONTAINED_HEIGHT,
+          paddingInline: 20,
+          paddingBlock: 0,
+          fontSize: '0.94rem',
+          fontWeight: 600,
+          lineHeight: 1,
+          textTransform: 'none',
+          background: FIGMA_PURPLE_GRADIENT,
           boxShadow: `0px 12px 24px ${alpha(BRAND, 0.22)}`,
           '&:hover': {
+            opacity: 0.92,
             boxShadow: `0px 16px 32px ${alpha(BRAND, 0.26)}`,
           },
         },
+        containedPrimary: {
+          background: FIGMA_PURPLE_GRADIENT,
+        },
         outlined: {
+          minHeight: CONTAINED_HEIGHT,
+          height: CONTAINED_HEIGHT,
+          paddingInline: 20,
+          paddingBlock: 0,
+          fontSize: '0.94rem',
+          fontWeight: 600,
+          lineHeight: 1,
+          textTransform: 'none',
           borderColor: alpha('#0F172A', 0.16),
           '&:hover': {
             borderColor: alpha(BRAND, 0.35),

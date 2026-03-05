@@ -51,6 +51,9 @@ const movingGradient = keyframes`
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 `
+const FIGMA_PURPLE_GRADIENT = 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)'
+const HOME_ACTION_HEIGHT = 46
+const HOME_ACTION_FONT = { xs: '0.84rem', md: '0.94rem' }
 
 const EVENT_CATEGORIES = [
   { key: 'ALL', label: 'Todos', icon: FormatListBulletedRounded },
@@ -252,7 +255,7 @@ function HomePage() {
       <Box sx={{ textAlign: 'center', pb: { xs: 3.5, md: 4.5 }, px: { xs: 0.5, sm: 1 } }}>
         <Typography variant="h4" fontWeight={700} sx={{ px: { xs: 0.5, sm: 0 } }}>
           Descubra experiências{' '}
-          <Box component="span" sx={{ color: '#6d4ce7' }}>
+          <Box component="span" sx={{ color: '#6E51C5' }}>
             incríveis
           </Box>
         </Typography>
@@ -301,10 +304,10 @@ function HomePage() {
 
       <Box id="eventos" sx={{ pt: { xs: 4, md: 5 }, scrollMarginTop: { xs: 90, md: 110 } }}>
         <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 }, px: { xs: 0.5, sm: 0 } }}>
-          <Typography variant="h5" fontWeight={700}>
-            Mais eventos
-          </Typography>
-          <Typography color="text.secondary" sx={{ maxWidth: 760, mx: 'auto' }}>
+          <Typography fontSize={24}>
+            Mais <span style={{fontWeight:"bolder"}}>eventos</span>
+            </Typography>
+          <Typography color="text.secondary" sx={{ }}>
             Descubra os melhores eventos culturais e outros formatos que estão por vir.
           </Typography>
         </Stack>
@@ -315,7 +318,7 @@ function HomePage() {
           sx={{
             overflowX: { xs: 'auto', md: 'visible' },
             flexWrap: { xs: 'nowrap', md: 'wrap' },
-            justifyContent: { xs: 'flex-start', md: 'center' },
+            justifyContent: { xs: 'flex-start', md: 'space-between' },
             rowGap: { xs: 0, md: 1 },
             mb: { xs: 2.5, md: 3 },
             pb: { xs: 0.5, md: 0 },
@@ -329,6 +332,7 @@ function HomePage() {
             <Chip
               key={category.key}
               label={category.label}
+              
               clickable
               color="default"
               variant="filled"
@@ -336,16 +340,25 @@ function HomePage() {
               icon={<Icon sx={{ fontSize: 18 }} />}
               sx={{
                 fontWeight: 600,
-                px: 0.5,
+                height: HOME_ACTION_HEIGHT,
+                minHeight: HOME_ACTION_HEIGHT,
                 borderRadius: '10px',
                 flexShrink: 0,
-                bgcolor: eventsCategory === category.key ? '#5f45da' : '#fff',
-                color: eventsCategory === category.key ? '#fff' : '#5f45da',
-                border: eventsCategory === category.key ? '1px solid #5f45da' : '1px solid #e5e7eb',
+                px:1.5,
+                background: eventsCategory === category.key ? FIGMA_PURPLE_GRADIENT : '#fff',
+                color: eventsCategory === category.key ? '#fff' : '#6E51C5',
+                border:
+                  eventsCategory === category.key
+                    ? '1px solid rgba(255, 255, 255, 0.28)'
+                    : '2px solid #6E51C5',
                 boxShadow: eventsCategory === category.key ? '0 10px 18px rgba(109, 76, 231, 0.28)' : 'none',
-                '& .MuiChip-label': { px: 1, fontSize: { xs: '0.78rem', md: '0.86rem' } },
+                '& .MuiChip-label': {
+                  px: 2.0,
+                  fontSize: HOME_ACTION_FONT,
+                  lineHeight: 1,
+                },
                 '& .MuiChip-icon': {
-                  color: eventsCategory === category.key ? '#fff' : '#5f45da',
+                  color: eventsCategory === category.key ? '#fff' : '#6E51C5',
                 },
               }}
             />
@@ -424,25 +437,12 @@ function HomePage() {
                           size="small"
                           sx={{
                             alignSelf: 'flex-start',
-                            bgcolor: 'rgba(109, 40, 217, 0.12)',
-                            color: '#6d4ce7',
+                            background: FIGMA_PURPLE_GRADIENT,
+                            color: '#fff',
                             fontWeight: 700,
                           }}
                         />
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          alignItems="center"
-                          onClick={() => tenantId && navigate(`/organizers/${tenantId}`)}
-                          sx={{ cursor: tenantId ? 'pointer' : 'default', width: 'fit-content' }}
-                        >
-                          <Avatar src={tenantLogo || undefined} sx={{ width: 26, height: 26, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7', fontSize: '0.75rem' }}>
-                            {String(tenantName).slice(0, 1).toUpperCase()}
-                          </Avatar>
-                          <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 220 }} noWrap>
-                            {tenantName}
-                          </Typography>
-                        </Stack>
+                   
                         <Typography fontWeight={700} sx={{ lineHeight: 1.25, fontSize: { xs: '1rem', md: '1.1rem' } }}>
                           {event.name || 'Evento'}
                         </Typography>
@@ -458,14 +458,31 @@ function HomePage() {
                             {event.location || 'Local a definir'}
                           </Typography>
                         </Stack>
+                             <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          onClick={() => tenantId && navigate(`/organizers/${tenantId}`)}
+                          sx={{ cursor: tenantId ? 'pointer' : 'default', width: 'fit-content' }}
+                        >
+                          <Avatar src={tenantLogo || undefined} sx={{ width: 26, height: 26, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6E51C5', fontSize: '0.75rem' }}>
+                            {String(tenantName).slice(0, 1).toUpperCase()}
+                          </Avatar>
+                          <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 220 }} noWrap>
+                            {tenantName}
+                          </Typography>
+                        </Stack>
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between">
                           <Stack direction="row" spacing={1} alignItems="center">
+                            
                             <ConfirmationNumberRounded fontSize="small" sx={{ color: '#9ca3af' }} />
+                            
                             <Stack spacing={0} alignItems="flex-start">
                               <Typography variant="caption" color="text.secondary">
                                 {priceCaption}
                               </Typography>
-                              <Typography fontWeight={700} sx={{ color: '#6d4ce7' }}>
+                              
+                              <Typography fontWeight={700} sx={{ color: '#6E51C5' }}>
                                 {priceLabel}
                               </Typography>
                               {freeLimitLabel ? (
@@ -482,10 +499,23 @@ function HomePage() {
                             startIcon={<AddRounded sx={{ fontSize: 16 }} />}
                             sx={{
                               borderRadius: '10px',
-                              px: 2,
+                              minHeight: HOME_ACTION_HEIGHT,
+                              height: HOME_ACTION_HEIGHT,
+                              px: 1.5,
+                              py: 0,
+                              fontSize: HOME_ACTION_FONT,
+                              fontWeight: 600,
+                              lineHeight: 1,
                               width: { xs: '100%', sm: 'auto' },
-                              bgcolor: '#6d4ce7',
-                              '&:hover': { bgcolor: '#5a3fd6' },
+                              background: FIGMA_PURPLE_GRADIENT,
+                              textTransform: 'none',
+                              '& .MuiButton-startIcon': {
+                                marginLeft: 0,
+                                marginRight: 0.5,
+                              },
+                              '&:hover': {
+                                opacity: 0.92,
+                              },
                             }}
                           >
                             {isFreeOnly ? 'Resgatar' : 'Comprar'}
@@ -507,8 +537,8 @@ function HomePage() {
 
       <Box id="como-funciona" sx={{ pt: { xs: 4, md: 5 }, scrollMarginTop: { xs: 90, md: 110 } }}>
         <Stack spacing={1} sx={{ textAlign: 'center', mb: { xs: 3, md: 4 }, px: { xs: 0.5, sm: 0 } }}>
-          <Typography variant="h5" fontWeight={700}>
-            Como funciona?
+          <Typography fontSize={24}>
+            <span style={{fontWeight:"bolder"}}>Como</span> funciona?
           </Typography>
           <Typography color="text.secondary">
             É muito fácil comprar e transferir ingressos na Sobora!
@@ -531,7 +561,7 @@ function HomePage() {
                   py: { xs: 2.4, md: 3 },
                   borderRadius: "10px",
                   color: '#fff',
-                  background: 'linear-gradient(160deg, #6b4cd6 0%, #5640b3 100%)',
+                  background: FIGMA_PURPLE_GRADIENT,
                   boxShadow: '0 14px 30px rgba(67, 56, 103, 0.25)',
                   textAlign: 'center',
                 }}
@@ -570,8 +600,8 @@ function HomePage() {
         sx={{ pt: { xs: 4, md: 5 }, pb: { xs: 1, md: 2 }, textAlign: 'center', scrollMarginTop: { xs: 90, md: 110 } }}
       >
         <Stack spacing={1} sx={{ mb: 2, maxWidth: 760, mx: 'auto', px: { xs: 0.5, sm: 0 } }}>
-          <Typography variant="h5" fontWeight={700}>
-            Organiza eventos?
+          <Typography fontSize={24}>
+           <span style={{fontWeight:"bolder"}}>Organiza</span> eventos?
           </Typography>
           <Typography color="text.secondary">
             Venda seus ingressos na Sobora e alcance milhares de pessoas interessadas em cultura.
@@ -581,13 +611,27 @@ function HomePage() {
         <Button
           variant="contained"
           startIcon={<AddRounded />}
-          sx={{
-            borderRadius: "10px",
-            px: 3,
-            py: 1,
-            mb:3,
-            background: 'linear-gradient(135deg, #6b4cd6 0%, #5640b3 100%)',
-          }}
+            sx={{
+                              borderRadius: '10px',
+                              minHeight: HOME_ACTION_HEIGHT,
+                              height: HOME_ACTION_HEIGHT,
+                              px: 1.5,
+                              py: 0,
+                              mb:3,
+                              fontSize: HOME_ACTION_FONT,
+                              fontWeight: 600,
+                              lineHeight: 1,
+                              width: { xs: '100%', sm: 'auto' },
+                              background: FIGMA_PURPLE_GRADIENT,
+                              textTransform: 'none',
+                              '& .MuiButton-startIcon': {
+                                marginLeft: 0,
+                                marginRight: 0.5,
+                              },
+                              '&:hover': {
+                                opacity: 0.92,
+                              },
+                            }}
         >
           Criar meu evento
         </Button>
@@ -597,3 +641,4 @@ function HomePage() {
 }
 
 export default HomePage
+

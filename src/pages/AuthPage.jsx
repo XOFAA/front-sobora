@@ -294,7 +294,7 @@ function AuthPage() {
                   </Button>
                   <Divider />
                   <Stack direction="row" spacing={1} justifyContent="center" alignItems="center" flexWrap="wrap">
-                    <StorefrontRounded sx={{ fontSize: 18, color: '#6d4ce7' }} />
+                    <StorefrontRounded sx={{ fontSize: 18, color: '#6E51C5' }} />
                     <Typography color="text.secondary">É organizador e quer criar um evento?</Typography>
                     <Button
                       component="a"
@@ -302,7 +302,7 @@ function AuthPage() {
                       target="_blank"
                       rel="noreferrer"
                       variant="text"
-                      sx={{ textTransform: 'none', fontWeight: 700, color: '#6d4ce7' }}
+                      sx={{ textTransform: 'none', fontWeight: 700, color: '#6E51C5' }}
                     >
                       Faça o login aqui
                     </Button>
@@ -351,3 +351,5 @@ function AuthPage() {
 }
 
 export default AuthPage
+
+

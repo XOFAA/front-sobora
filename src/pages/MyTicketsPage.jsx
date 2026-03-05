@@ -28,6 +28,11 @@ import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded'
 import VpnKeyRounded from '@mui/icons-material/VpnKeyRounded'
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded'
 import ConfirmationNumberRounded from '@mui/icons-material/ConfirmationNumberRounded'
+import DownloadRounded from '@mui/icons-material/DownloadRounded'
+import WorkOutlineRounded from '@mui/icons-material/WorkOutlineRounded'
+import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded'
+import ExpandLessRounded from '@mui/icons-material/ExpandLessRounded'
+import InfoRounded from '@mui/icons-material/InfoRounded'
 import { useAuth } from '../contexts/AuthContext'
 import {
   acceptTicketTransferByCode,
@@ -190,6 +195,36 @@ const formatPriceOrFree = (value) => {
   return (amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+const getGoogleWalletLink = (ticket) => {
+  const candidates = [
+    ticket?.googleWalletUrl,
+    ticket?.google_wallet_url,
+    ticket?.walletUrl,
+    ticket?.wallet_url,
+    ticket?.walletPassUrl,
+    ticket?.wallet_pass_url,
+    ticket?.saveToGoogleWalletUrl,
+    ticket?.save_to_google_wallet_url,
+    ticket?.passUrl,
+    ticket?.pass_url,
+  ]
+  return candidates.find((value) => typeof value === 'string' && value.trim()) || ''
+}
+
+const getEventCategoryLabel = (event) =>
+  event?.category?.name || event?.categoryName || event?.category || 'Evento'
+
+const getOrganizerName = (event) =>
+  event?.tenant?.tradeName || event?.tenant?.name || event?.organizer?.name || event?.organizerName || 'Organizador'
+
+const getOrganizerLogo = (event) =>
+  resolveImage(
+    event?.tenant?.logoUrl ||
+      event?.organizer?.logoUrl ||
+      event?.organizerLogo ||
+      '',
+  )
+
 function MyTicketsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -198,7 +233,8 @@ function MyTicketsPage() {
   const [transfersSent, setTransfersSent] = useState([])
   const [orders, setOrders] = useState([])
   const [eventImagesById, setEventImagesById] = useState({})
-  const [expandedOrders, setExpandedOrders] = useState({})
+  const [eventDetailsById, setEventDetailsById] = useState({})
+  const [expandedOrderKey, setExpandedOrderKey] = useState(null)
   const [nowMs, setNowMs] = useState(Date.now())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -267,7 +303,7 @@ function MyTicketsPage() {
 
   useEffect(() => {
     let active = true
-    const loadMissingEventImages = async () => {
+    const loadMissingEventData = async () => {
       const eventMap = new Map()
       tickets.forEach((ticket) => {
         if (ticket.event?.id && !eventMap.has(ticket.event.id)) {
@@ -276,7 +312,12 @@ function MyTicketsPage() {
       })
 
       const idsToFetch = Array.from(eventMap.entries())
-        .filter(([eventId, event]) => !getEventImageRaw(event) && eventImagesById[eventId] === undefined)
+        .filter(([eventId, event]) => {
+          const missingImage = !getEventImageRaw(event) && eventImagesById[eventId] === undefined
+          const missingOrganizer = !getOrganizerName(event) || getOrganizerName(event) === 'Organizador'
+          const missingLogo = !getOrganizerLogo(event)
+          return missingImage || missingOrganizer || missingLogo
+        })
         .map(([eventId]) => eventId)
 
       if (!idsToFetch.length) return
@@ -286,18 +327,25 @@ function MyTicketsPage() {
           try {
             const fullEvent = await fetchEvent(eventId)
             const imageRaw = getEventImageRaw(fullEvent)
-            return [eventId, imageRaw ? resolveImage(imageRaw) : '']
+            return [eventId, { image: imageRaw ? resolveImage(imageRaw) : '', event: fullEvent || {} }]
           } catch {
-            return [eventId, '']
+            return [eventId, { image: '', event: {} }]
           }
         }),
       )
 
       if (!active) return
-      setEventImagesById((prev) => ({ ...prev, ...Object.fromEntries(results) }))
+      setEventImagesById((prev) => ({
+        ...prev,
+        ...Object.fromEntries(results.map(([eventId, data]) => [eventId, data.image])),
+      }))
+      setEventDetailsById((prev) => ({
+        ...prev,
+        ...Object.fromEntries(results.map(([eventId, data]) => [eventId, data.event])),
+      }))
     }
 
-    loadMissingEventImages()
+    loadMissingEventData()
     return () => {
       active = false
     }
@@ -425,7 +473,7 @@ function MyTicketsPage() {
   }
 
   const toggleOrderDetails = (key) => {
-    setExpandedOrders((prev) => ({ ...prev, [key]: !prev[key] }))
+    setExpandedOrderKey((prev) => (prev === key ? null : key))
   }
 
   useEffect(() => {
@@ -551,6 +599,34 @@ function MyTicketsPage() {
 
     const fileDate = new Date().toISOString().slice(0, 10)
     doc.save(`transferencias-${fileDate}.pdf`)
+  }
+
+  const handleDownloadTicket = async (ticket) => {
+    if (!ticket?.qrCode) {
+      setActionMessage('Este ingresso não possui QR Code para download.')
+      return
+    }
+    try {
+      const dataUrl = await QRCode.toDataURL(ticket.qrCode, { width: 720, margin: 1 })
+      const link = document.createElement('a')
+      link.href = dataUrl
+      link.download = `ingresso-${ticket.id || 'qrcode'}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setActionMessage('QR Code do ingresso baixado.')
+    } catch {
+      setActionMessage('Não foi possível baixar o QR Code.')
+    }
+  }
+
+  const handleOpenGoogleWallet = (ticket) => {
+    const walletUrl = getGoogleWalletLink(ticket)
+    if (!walletUrl) {
+      setActionMessage('Este ingresso ainda não possui link para Google Wallet.')
+      return
+    }
+    window.open(walletUrl, '_blank', 'noopener,noreferrer')
   }
 
   const handleCancelTransfer = async (ticket) => {
@@ -828,9 +904,15 @@ function MyTicketsPage() {
         {filteredGroups.length ? (
           filteredGroups.map((group, index) => (
             <Grid key={group.key || group.orderId || `group-${index}`} size={{ xs: 12, md: 6, xl: 4 }}>
+              {(() => {
+                const expandKey = `${group.key || group.orderId || 'group'}-${group.event?.id || 'event'}-${index}`
+                const hydratedEvent = {
+                  ...(eventDetailsById[group.event?.id] || {}),
+                  ...(group.event || {}),
+                }
+                return (
               <Card
                 sx={{
-                  height: '100%',
                   borderRadius: '10px',
                   overflow: 'hidden',
                   border: '1px solid',
@@ -851,15 +933,27 @@ function MyTicketsPage() {
                     <Box
                       component="img"
                       src={group.image}
-                      alt={group.event?.name || 'Evento'}
+                      alt={hydratedEvent?.name || 'Evento'}
                       loading="lazy"
                       sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : null}
                 </Box>
                 <CardContent>
-                  <Typography variant="h6" fontWeight={600}>
-                    {group.event?.name || 'Evento'}
+                  <Chip
+                    size="small"
+                    label={getEventCategoryLabel(group.event)}
+                    sx={{
+                      mb: 1,
+                      borderRadius: '8px',
+                      height: 24,
+                      background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                      color: '#fff',
+                      fontWeight: 700,
+                    }}
+                  />
+                  <Typography sx={{ fontSize: { xs: '1.15rem', sm: '1.3rem' }, fontWeight: 700, lineHeight: 1.25 }}>
+                    {hydratedEvent?.name || 'Evento'}
                   </Typography>
                   {group.orderCode || group.orderId ? (
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
@@ -869,32 +963,73 @@ function MyTicketsPage() {
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
                     <CalendarMonthRounded fontSize="small" color="disabled" />
                     <Typography variant="body2" color="text.secondary">
-                      {formatEventDateRange(group.event)}
+                      {formatEventDateRange(hydratedEvent)}
                     </Typography>
                   </Stack>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
                     <PlaceRounded fontSize="small" color="disabled" />
                     <Typography variant="body2" color="text.secondary">
-                      {group.event?.location || 'Local a definir'}
+                      {hydratedEvent?.location || 'Local a definir'}
                     </Typography>
                   </Stack>
-                  <Divider sx={{ my: 2 }} />
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
+                    {getOrganizerLogo(hydratedEvent) ? (
+                      <Box
+                        component="img"
+                        src={getOrganizerLogo(hydratedEvent)}
+                        alt={getOrganizerName(hydratedEvent)}
+                        sx={{ width: 24, height: 24, borderRadius: '6px', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '6px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          bgcolor: '#0F1F5A',
+                          color: '#fff',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {getOrganizerName(hydratedEvent).slice(0, 1).toUpperCase()}
+                      </Box>
+                    )}
+                    <Typography variant="body2" color="text.secondary">
+                      {getOrganizerName(hydratedEvent)}
+                    </Typography>
+                  </Stack>
+                  <Divider sx={{ my: 1.5 }} />
                   <Button
-                    variant="text"
-                    onClick={() => toggleOrderDetails(group.key)}
-                    sx={{ p: 0, minWidth: 0, alignSelf: 'flex-start' }}
+                    variant="contained"
+                    startIcon={expandedOrderKey === expandKey ? <ExpandLessRounded /> : <ExpandMoreRounded />}
+                    onClick={() => toggleOrderDetails(expandKey)}
+                    sx={{
+                      alignSelf: 'flex-start',
+                      borderRadius: '12px',
+                      px: 2.2,
+                      py: 1,
+                      fontWeight: 700,
+                      background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                      color: '#fff',
+                      '&:hover': { background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)', opacity: 0.95 },
+                    }}
                   >
-                    {expandedOrders[group.key] ? 'Ocultar detalhes' : `Ver detalhes (${group.items.length} ingressos)`}
+                    {expandedOrderKey === expandKey
+                      ? `Ocultar detalhes (${group.items.length} ingressos)`
+                      : `Ver detalhes (${group.items.length} ingressos)`}
                   </Button>
-                  <Collapse in={Boolean(expandedOrders[group.key])} unmountOnExit>
+                  <Collapse in={expandedOrderKey === expandKey} unmountOnExit>
                     <Stack spacing={1.25} sx={{ mt: 1.5 }}>
                       {group.items.map((ticket) => (
                         <Card
                           key={ticket.id}
                           variant="outlined"
-                          sx={{ borderRadius: '10px', p: 1.5, bgcolor: 'grey.50' }}
+                          sx={{ borderRadius: '12px', p: 1.5, bgcolor: '#fff', borderColor: '#E2E8F0' }}
                         >
-                          <Stack spacing={1.2}>
+                          <Stack spacing={1.15}>
                             <Stack
                               direction={{ xs: 'column', sm: 'row' }}
                               spacing={1}
@@ -902,12 +1037,12 @@ function MyTicketsPage() {
                               alignItems={{ sm: 'flex-start' }}
                             >
                               <Box>
-                                <Typography fontWeight={600}>
+                                <Typography sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.06rem' } }}>
                                   {ticket.type}
                                 </Typography>
-                                  <Typography variant="body2" color="text.secondary">
-                                    Valor: {formatPriceOrFree(ticket.price)}
-                                  </Typography>
+                                <Typography sx={{ color: '#6E51C5', fontSize: { xs: '1.3rem', sm: '1.4rem' }, fontWeight: 700 }}>
+                                  {formatPriceOrFree(ticket.price)}
+                                </Typography>
                               </Box>
                               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                                 <Chip
@@ -933,6 +1068,10 @@ function MyTicketsPage() {
                               </Stack>
                             </Stack>
 
+                            <Typography variant="body2" color="text.secondary">
+                              {ticket.description || 'Acesso ao setor conforme disponibilidade do evento.'}
+                            </Typography>
+
                             {isTransferPending(ticket, nowMs) &&
                             ticket.transfer?.fromUserId === user?.id &&
                             ticket.transfer?.code ? (
@@ -950,43 +1089,46 @@ function MyTicketsPage() {
                               </Stack>
                             ) : null}
 
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                            <Button
+                              variant="contained"
+                              startIcon={<ConfirmationNumberRounded />}
+                              onClick={() => openQr(ticket)}
+                              disabled={!canShowQr(ticket)}
+                              sx={{
+                                borderRadius: '12px',
+                                height: { xs: 40, sm: 42 },
+                                fontSize: { xs: '0.9rem', sm: '0.95rem' },
+                                fontWeight: 700,
+                                background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                                '&:hover': { background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)', opacity: 0.95 },
+                              }}
+                            >
+                              Ver ingresso
+                            </Button>
+
+                            <Stack direction="row" spacing={1}>
                               <Button
-                                variant="contained"
-                                size="small"
-                                startIcon={<QrCode2Rounded />}
-                                onClick={() => openQr(ticket)}
-                                disabled={!canShowQr(ticket)}
-                                sx={{ minWidth: { sm: 140 } }}
+                                variant="outlined"
+                                onClick={() => handleDownloadTicket(ticket)}
+                                sx={{ flex: 1, minWidth: 0, borderRadius: '12px', borderColor: '#94A3B8', color: '#64748B' }}
                               >
-                                Ver ingresso
+                                <DownloadRounded />
                               </Button>
-                              {isTransferPending(ticket, nowMs) &&
-                              ticket.transfer?.fromUserId === user?.id ? (
-                                <Button
-                                  variant="outlined"
-                                  color="error"
-                                  size="small"
-                                  onClick={() => handleCancelTransfer(ticket)}
-                                  disabled={cancelingTransferId === ticket.transfer.id}
-                                  sx={{ minWidth: { sm: 180 } }}
-                                >
-                                  {cancelingTransferId === ticket.transfer.id
-                                    ? 'Cancelando...'
-                                    : 'Cancelar transferência'}
-                                </Button>
-                              ) : null}
-                              {canTransfer(ticket) ? (
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  startIcon={<SendRounded />}
-                                  onClick={() => openTransfer(ticket)}
-                                  sx={{ minWidth: { sm: 140 } }}
-                                >
-                                  Transferir
-                                </Button>
-                              ) : null}
+                              <Button
+                                variant="outlined"
+                                onClick={() => handleOpenGoogleWallet(ticket)}
+                                sx={{ flex: 1, minWidth: 0, borderRadius: '12px', borderColor: '#94A3B8', color: '#64748B' }}
+                              >
+                                <WorkOutlineRounded />
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                onClick={() => canTransfer(ticket) && openTransfer(ticket)}
+                                disabled={!canTransfer(ticket)}
+                                sx={{ flex: 1, minWidth: 0, borderRadius: '12px', borderColor: '#94A3B8', color: '#64748B' }}
+                              >
+                                <SendRounded />
+                              </Button>
                             </Stack>
                           </Stack>
                         </Card>
@@ -995,6 +1137,8 @@ function MyTicketsPage() {
                   </Collapse>
                 </CardContent>
               </Card>
+                )
+              })()}
             </Grid>
           ))
         ) : (
@@ -1073,8 +1217,14 @@ function MyTicketsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(qrTicket)} onClose={() => setQrTicket(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ pr: 6 }}>
+      <Dialog
+        open={Boolean(qrTicket)}
+        onClose={() => setQrTicket(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '14px' } }}
+      >
+        <DialogTitle sx={{ pr: 6, pt: 2.2, textAlign: 'center', fontWeight: 700, fontSize: { xs: '1.45rem', sm: '1.65rem' } }}>
           QR Code do ingresso
           <IconButton
             onClick={() => setQrTicket(null)}
@@ -1083,32 +1233,115 @@ function MyTicketsPage() {
             <CloseRounded />
           </IconButton>
         </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} alignItems="center" sx={{ pt: 1 }}>
+        <DialogContent sx={{ pt: 0.5 }}>
+          <Stack spacing={1.6} alignItems="center" sx={{ pb: 1.2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontSize: { xs: '0.95rem', sm: '1rem' } }}>
+              Apresente este QR code ao validador para ter acesso ao evento.
+            </Typography>
+
             <Box
               sx={{
-                width: 260,
-                height: 260,
+                width: '100%',
+                borderRadius: '10px',
+                border: '1px solid #B0BEC5',
+                bgcolor: '#EAF0F5',
+                px: 1.2,
+                py: 0.8,
+              }}
+            >
+              <Stack direction="row" spacing={0.8} justifyContent="center" alignItems="center">
+                <InfoRounded sx={{ color: '#1E4D72', fontSize: 16 }} />
+                <Typography sx={{ fontSize: '0.82rem', color: '#1E4D72', fontWeight: 600 }}>
+                  Agilize sua entrada no evento.
+                </Typography>
+                <Typography sx={{ fontSize: '0.82rem', color: '#1E4D72', fontWeight: 700 }}>
+                  Fazer cadastro facial
+                </Typography>
+              </Stack>
+            </Box>
+
+            <Box
+              sx={{
+                width: 214,
+                height: 214,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: 'background.default',
-                borderRadius: 2,
+                bgcolor: '#fff',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
               }}
             >
               {qrLoading ? (
                 <Typography color="text.secondary">Gerando QR Code...</Typography>
               ) : qrImage ? (
-                <Box component="img" src={qrImage} alt="QR Code" sx={{ width: 240, height: 240 }} />
+                <Box component="img" src={qrImage} alt="QR Code" sx={{ width: 190, height: 190 }} />
               ) : (
                 <Typography color="text.secondary">Não foi possível gerar o QR Code.</Typography>
               )}
             </Box>
+
             {qrTicket ? (
               <Stack spacing={0.5} alignItems="center">
-                <Typography fontWeight={600}>{qrTicket.type}</Typography>
+                <Stack direction="row" spacing={0.8} alignItems="center">
+                  <Typography sx={{ fontSize: { xs: '1rem', sm: '1.08rem' } }}>
+                    Tipo de ingresso: <strong>{qrTicket.type}</strong>
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={getUseLabel(qrTicket).label}
+                    color={getUseLabel(qrTicket).color}
+                    sx={{ height: 22, fontSize: '0.76rem' }}
+                  />
+                </Stack>
               </Stack>
             ) : null}
+
+            <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+              <Button
+                variant="outlined"
+                onClick={() => qrTicket && handleDownloadTicket(qrTicket)}
+                sx={{ flex: 1, minWidth: 0, borderRadius: '10px', borderColor: '#94A3B8', color: '#64748B' }}
+              >
+                <DownloadRounded />
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => qrTicket && handleOpenGoogleWallet(qrTicket)}
+                sx={{ flex: 1, minWidth: 0, borderRadius: '10px', borderColor: '#94A3B8', color: '#64748B' }}
+              >
+                <WorkOutlineRounded />
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  if (!qrTicket || !canTransfer(qrTicket)) return
+                  setQrTicket(null)
+                  openTransfer(qrTicket)
+                }}
+                disabled={!qrTicket || !canTransfer(qrTicket)}
+                sx={{ flex: 1, minWidth: 0, borderRadius: '10px', borderColor: '#94A3B8', color: '#64748B' }}
+              >
+                <SendRounded />
+              </Button>
+            </Stack>
+
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<CloseRounded />}
+              onClick={() => setQrTicket(null)}
+              sx={{
+                mt: 0.4,
+                borderRadius: '10px',
+                py: 1,
+                fontWeight: 700,
+                background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                '&:hover': { background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)', opacity: 0.95 },
+              }}
+            >
+              Fechar
+            </Button>
           </Stack>
         </DialogContent>
       </Dialog>

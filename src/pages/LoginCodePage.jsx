@@ -197,8 +197,8 @@ function LoginCodePage() {
               </Button>
 
               <Stack direction="row" spacing={0.8} justifyContent="center" alignItems="center">
-                <AccessTimeFilledRounded sx={{ fontSize: 16, color: '#6d4ce7' }} />
-                <Typography sx={{ color: '#6d4ce7', fontWeight: 700 }}>{timerLabel}</Typography>
+                <AccessTimeFilledRounded sx={{ fontSize: 16, color: '#6E51C5' }} />
+                <Typography sx={{ color: '#6E51C5', fontWeight: 700 }}>{timerLabel}</Typography>
                 <Typography color="text.secondary">para reenviar</Typography>
               </Stack>
 
@@ -228,4 +228,6 @@ function LoginCodePage() {
 }
 
 export default LoginCodePage
+
+
 

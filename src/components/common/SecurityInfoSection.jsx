@@ -1,5 +1,7 @@
-import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material'
+﻿import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material'
 import Grid from '@mui/material/Grid'
+
+const FIGMA_PURPLE_GRADIENT = 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)'
 
 function SecurityInfoSection({ sx }) {
   return (
@@ -9,13 +11,13 @@ function SecurityInfoSection({ sx }) {
         px: { xs: 0, md: 1 },
         py: { xs: 2, md: 3 },
         borderRadius: '10px',
-        background: 'linear-gradient(180deg, #f8f6ff 0%, #f5f2ff 100%)',
+  
         ...sx,
       }}
     >
       <Stack spacing={0.6} sx={{ textAlign: 'center', mb: { xs: 2.5, md: 3 } }}>
         <Typography variant="h5" fontWeight={700} sx={{ color: '#1f2937' }}>
-          Compra <Box component="span" sx={{ color: '#6d4ce7' }}>segura</Box> e informações importantes
+          Compra <Box component="span" sx={{ color: '#6E51C5' }}>segura</Box> e informações importantes
         </Typography>
         <Typography color="text.secondary">
           Na Sobora, sua segurança é a nossa prioridade.
@@ -28,7 +30,7 @@ function SecurityInfoSection({ sx }) {
             sx={{
               height: '100%',
               borderRadius: '10px',
-              bgcolor: '#6b4cd6',
+              background: FIGMA_PURPLE_GRADIENT,
               color: '#fff',
               boxShadow: '0 18px 30px rgba(76, 52, 196, 0.25)',
             }}
@@ -66,7 +68,7 @@ function SecurityInfoSection({ sx }) {
             sx={{
               height: '100%',
               borderRadius: '10px',
-              bgcolor: '#5a3fc4',
+              background: FIGMA_PURPLE_GRADIENT,
               color: '#fff',
               boxShadow: '0 18px 30px rgba(76, 52, 196, 0.25)',
             }}
@@ -94,10 +96,10 @@ function SecurityInfoSection({ sx }) {
       >
         <CardContent>
           <Stack spacing={1.5} sx={{ textAlign: 'center' }}>
-            <Typography fontWeight={700} sx={{ color: '#f59e0b' }}>
+            <Typography fontWeight={700} sx={{ color: '#FF9800' }}>
               Notou algo suspeito nesta página?
             </Typography>
-            <Typography sx={{ color: '#7c5b1c', fontSize: '0.95rem' }}>
+            <Typography sx={{ color: '#000', fontSize: '0.95rem' }}>
               Se você identificar qualquer comportamento estranho, preços diferentes dos praticados oficialmente, ou
               suspeitar que este anúncio é fraudulento, denuncie imediatamente. Nossa equipe de segurança investiga
               todas as denúncias.
@@ -138,7 +140,7 @@ function SecurityInfoSection({ sx }) {
                   borderRadius: '10px',
                   px: 3,
                   borderColor: '#6d4ce7',
-                  color: '#6d4ce7',
+                  color: '#6E51C5',
                   '&:hover': { borderColor: '#5a3fd6', backgroundColor: 'rgba(109, 76, 231, 0.08)' },
                 }}
               >
@@ -149,10 +151,10 @@ function SecurityInfoSection({ sx }) {
               <Typography fontWeight={700} sx={{ color: '#1f2937', mb: 0.4 }}>
                 Canais oficiais de suporte:
               </Typography>
-              <Typography sx={{ color: '#7c5b1c', fontSize: '0.9rem' }}>
+              <Typography sx={{ color: '#000', fontSize: '0.9rem' }}>
                 Webchat: disponível 24 horas por dia
               </Typography>
-              <Typography sx={{ color: '#7c5b1c', fontSize: '0.9rem' }}>
+              <Typography sx={{ color: '#000', fontSize: '0.9rem' }}>
                 E-mail: suporte@sobora.com.br (respondemos em até 24 horas)
               </Typography>
             </Box>
@@ -164,3 +166,6 @@ function SecurityInfoSection({ sx }) {
 }
 
 export default SecurityInfoSection
+
+
+

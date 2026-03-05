@@ -25,60 +25,80 @@ import DownloadRounded from '@mui/icons-material/DownloadRounded'
 import CreditCardRounded from '@mui/icons-material/CreditCardRounded'
 import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded'
 import ReceiptLongRounded from '@mui/icons-material/ReceiptLongRounded'
+import PersonRounded from '@mui/icons-material/PersonRounded'
+import ConfirmationNumberRounded from '@mui/icons-material/ConfirmationNumberRounded'
+import CloseRounded from '@mui/icons-material/CloseRounded'
+import MailOutlineRounded from '@mui/icons-material/MailOutlineRounded'
+import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
+import SecurityInfoSection from '../components/common/SecurityInfoSection'
 
 const STEPS = ['Ingressos', 'Dados', 'Pagamento', 'Confirmação']
+const FIGMA_GREEN_GRADIENT = 'linear-gradient(90deg, #34A853 0%, #315951 100%)'
 
 function formatPrice(value) {
   return ((value ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 function StepHeader({ currentStep }) {
-  const currentLabel = STEPS[currentStep] || STEPS[0]
-
   return (
-    <Stack spacing={0.9}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: { xs: 0.5, md: 0 } }}>
-        <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>
-          Passo {currentStep + 1} de {STEPS.length}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ color: '#6D4CE7', fontWeight: 700, maxWidth: '60%', textAlign: 'right' }}
-          noWrap
-        >
-          {currentLabel}
-        </Typography>
-      </Stack>
-      <Stack direction="row" justifyContent="center" spacing={{ xs: 0.8, md: 3 }} sx={{ py: 0.3 }}>
+    <Box sx={{ width: '100%', py: 0.5 }}>
+      <Box
+        sx={{
+          width: 'fit-content',
+          mx: 'auto',
+          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: `repeat(${STEPS.length}, minmax(70px, 86px))`,
+            sm: `repeat(${STEPS.length}, 120px)`,
+            md: `repeat(${STEPS.length}, 150px)`,
+          },
+          justifyItems: 'center',
+          alignItems: 'flex-start',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            left: { xs: 35, sm: 60, md: 75 },
+            right: { xs: 35, sm: 60, md: 75 },
+            top: { xs: 15, sm: 16 },
+            height: 2,
+            bgcolor: '#E5E7EB',
+            zIndex: 0,
+          }}
+        />
         {STEPS.map((label, index) => {
           const active = index === currentStep
           const done = index < currentStep
           return (
-            <Stack key={label} spacing={0.6} alignItems="center" sx={{ minWidth: { xs: 60, md: 90 } }}>
+            <Stack key={label} spacing={0.9} alignItems="center" sx={{ position: 'relative', zIndex: 1 }}>
               <Box
                 sx={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
+                  width: { xs: 32, sm: 34 },
+                  height: { xs: 32, sm: 34 },
+                  borderRadius: '10px',
                   display: 'grid',
                   placeItems: 'center',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  bgcolor: active || done ? '#6D4CE7' : '#E5E7EB',
-                  color: active || done ? '#fff' : '#94A3B8',
+                  fontSize: { xs: 12, sm: 14 },
+                
+                  bgcolor: active || done ? '#6E51C5' : '#ECEFF3',
+                  color: active || done ? '#FFFFFF' : '#A7AFB9',
+                  lineHeight: 1,
                 }}
               >
                 {index + 1}
               </Box>
               <Typography
-                variant="caption"
                 sx={{
-                  fontWeight: active ? 700 : 500,
-                  color: active ? '#6D4CE7' : '#94A3B8',
-                  fontSize: { xs: '0.68rem', sm: '0.75rem' },
+                  fontWeight: active ? 700 : 600,
+                  color: active ? '#6E51C5' : '#A7AFB9',
+                  fontSize: { xs: '0.72rem', sm: '0.74rem' },
+                  lineHeight: 1.1,
+                  textAlign: 'center',
                 }}
               >
                 {label}
@@ -86,8 +106,8 @@ function StepHeader({ currentStep }) {
             </Stack>
           )
         })}
-      </Stack>
-    </Stack>
+      </Box>
+    </Box>
   )
 }
 
@@ -152,11 +172,22 @@ function CheckoutPage() {
 
   const eventDateLabel = event?.dateRange || event?.dateLabel || 'Data a definir'
   const eventLocationLabel = event?.location || 'Local a definir'
+  const importantInfoItems = useMemo(() => {
+    const raw = String(event?.importantInfo || '')
+    return raw
+      .split(/\r?\n/g)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }, [event?.importantInfo])
 
   const organizerName =
     event?.organizer?.name ||
     event?.organizerName ||
     'Organizador do evento'
+  const organizerLogo =
+    event?.organizer?.logoUrl ||
+    event?.organizerLogo ||
+    ''
   const organizerTenantId = event?.organizer?.tenantId || event?.organizerTenantId || ''
   const organizerEmail = event?.organizer?.email || event?.organizerEmail || ''
 
@@ -238,14 +269,24 @@ function CheckoutPage() {
         sx={{
           borderRadius: '10px',
           border: '1px solid #E2E8F0',
-          position: 'sticky',
-          top: { xs: 70, md: 84 },
-          zIndex: 1090,
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(6px)',
+          position: { xs: 'sticky', md: 'static' },
+          top: { xs: 70, md: 'auto' },
+          zIndex: { xs: 1090, md: 'auto' },
+          backgroundColor: { xs: 'rgba(255,255,255,0.95)', md: '#fff' },
+          backdropFilter: { xs: 'blur(6px)', md: 'none' },
         }}
       >
-        <CardContent sx={{ py: 1.2 }}>
+        <CardContent
+          sx={{
+            px: { xs: 1.2, md: 2 },
+            py: 1.2,
+            minHeight: 96,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            '&:last-child': { pb: 1.2 },
+          }}
+        >
           <StepHeader currentStep={step} />
         </CardContent>
       </Card>
@@ -289,7 +330,7 @@ function CheckoutPage() {
         <Grid size={{ xs: 12, md: 8 }}>
           <Card elevation={0} sx={{ borderRadius: '10px', border: '1px solid #E2E8F0' }}>
             <CardContent>
-              <Typography variant="h6" fontWeight={700} sx={{ color: '#6D4CE7' }}>
+              <Typography variant="h6" fontWeight={700} sx={{ color: '#6E51C5' }}>
                 {mainTitleByStep[step]}
               </Typography>
               <Divider sx={{ my: 1.5 }} />
@@ -317,11 +358,18 @@ function CheckoutPage() {
                           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                             Quantidade: {item.quantity}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.6 }}>
-                            Acesso ao setor conforme disponibilidade do evento.
-                          </Typography>
+                          {item.description ? (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mt: 0.6, whiteSpace: 'pre-line' }}
+                            >
+                              {item.description}
+                            </Typography>
+                          ) : null}
+                     
                         </Box>
-                        <Typography fontWeight={700} sx={{ color: '#6D4CE7' }}>
+                        <Typography fontWeight={700} sx={{ color: '#6E51C5' }}>
                           {formatPrice(item.price * item.quantity)}
                         </Typography>
                       </Stack>
@@ -336,15 +384,12 @@ function CheckoutPage() {
                             bgcolor: '#FFF7E6',
                           }}
                         >
-                          <Typography variant="caption" sx={{ color: '#C2410C', fontWeight: 700 }}>
-                            Documentos aceitos:
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#7C2D12' }}>
-                            {' '}Carteira de estudante, ID Jovem, 60+ ou laudo médico (PCD)
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#7C2D12', display: 'block', mt: 0.4 }}>
-                            *Apresentação obrigatória na entrada
-                          </Typography>
+                         <Typography fontWeight={700} sx={{ mb: 0.5, color: '#FF9800' }}>
+                        Documentos aceitos: <span style={{color:"#000",fontSize:'15px',fontWeight:"400"}}>Carteira de estudante, ID Jovem, 60+ ou laudo médico (PCD)</span>
+                      </Typography>
+                         <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                              *Apresentação obrigatória na entrada
+                                            </Typography>
                         </Box>
                       ) : null}
                     </Box>
@@ -359,6 +404,25 @@ function CheckoutPage() {
                     >
                       Voltar à página do evento
                     </Button>
+                  ) : step === 3 ? (
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignSelf: 'flex-start' }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<ConfirmationNumberRounded />}
+                        onClick={() => navigate('/tickets', { replace: true })}
+                        sx={{ borderRadius: '10px' }}
+                      >
+                        Meus ingressos
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<ArrowBackRounded />}
+                        onClick={() => navigate('/', { replace: true })}
+                        sx={{ borderRadius: '10px' }}
+                      >
+                        Voltar à página inicial
+                      </Button>
+                    </Stack>
                   ) : (
                     <Button
                       variant="outlined"
@@ -375,10 +439,31 @@ function CheckoutPage() {
               {step === 1 ? (
                 <Stack spacing={1.4}>
                   <Alert
-                    severity="info"
-                    sx={{ borderRadius: '10px', '& .MuiAlert-message': { fontSize: 12 } }}
+                    icon={<InfoOutlined fontSize="small" />}
+                    sx={{
+                      borderRadius: '10px',
+                      bgcolor: 'rgba(255, 152, 0, 0.12)',
+                      color: '#000',
+                      border: '1px solid rgba(255, 152, 0, 0.30)',
+                      '& .MuiAlert-icon': { color: '#FF9800' },
+                      '& .MuiAlert-message': {
+                        fontSize: 12,
+                        color: '#000',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: 0.5,
+                      },
+                    }}
                   >
-                    Não é possível alterar as informações do comprador aqui. Atualizar perfil
+                    Não é possível alterar as informações do comprador aqui.
+                    <Box
+                      component="span"
+                      onClick={() => navigate('/profile')}
+                      sx={{ fontWeight: 700, cursor: 'pointer', color: '#FF9800' }}
+                    >
+                      Atualizar perfil
+                    </Box>
                   </Alert>
                   <Stack spacing={1.2}>
                     <Typography variant="body2"><strong>Nome completo:</strong> {user?.name || '-'}</Typography>
@@ -389,6 +474,7 @@ function CheckoutPage() {
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                     <Button
                       variant="contained"
+                      startIcon={<PersonRounded />}
                       onClick={() => navigate('/profile')}
                       sx={{ borderRadius: '10px' }}
                     >
@@ -396,6 +482,7 @@ function CheckoutPage() {
                     </Button>
                     <Button
                       variant="outlined"
+                      startIcon={<ArrowBackRounded />}
                       onClick={goBack}
                       sx={{ borderRadius: '10px' }}
                     >
@@ -503,7 +590,7 @@ function CheckoutPage() {
                         Escaneie o QR Code abaixo com seu aplicativo do banco:
                       </Typography>
                       <Box component="img" src={qrUrl} alt="QR Code PIX" sx={{ width: 170, height: 170, borderRadius: '10px', border: '1px solid #E2E8F0' }} />
-                      <Typography variant="caption" sx={{ color: '#6D4CE7', fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ color: '#6E51C5', fontWeight: 600 }}>
                         30:00 para expirar
                       </Typography>
                       <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '10px', p: 1 }}>
@@ -573,39 +660,34 @@ function CheckoutPage() {
         <Grid size={{ xs: 12, md: 4 }}>
           <Card elevation={0} sx={{ borderRadius: '10px', border: '1px solid #E2E8F0', position: { md: 'sticky' }, top: { md: 88 } }}>
             <CardContent>
-              <Typography variant="h6" fontWeight={700} sx={{ color: '#6D4CE7', mb: 1.2 }}>
+              <Typography variant="h6" fontWeight={700} sx={{ color: '#6E51C5', mb: 1.2 }}>
                 Informações do pedido
               </Typography>
+              <Divider sx={{ mb: 1.2 }} />
 
-              <Alert
-                severity="info"
-                icon={<InfoOutlined fontSize="inherit" />}
-                sx={{ borderRadius: '10px', mb: 1.2, '& .MuiAlert-message': { fontSize: 12 } }}
-              >
-                <strong>Último lote!</strong> Restam poucos ingressos
-              </Alert>
+              {event?.lastBatchAlertEnabled ? (
+                <Alert
+                  severity="info"
+                  icon={<InfoOutlined fontSize="inherit" />}
+                  sx={{ borderRadius: '10px', mb: 1.2, '& .MuiAlert-message': { fontSize: 12 } }}
+                >
+                  <strong>Último lote!</strong> Restam poucos ingressos
+                </Alert>
+              ) : null}
 
               {step === 0 || step === 3 ? (
+                importantInfoItems.length ? (
                 <Box sx={{ border: '1px solid #E2E8F0', borderRadius: '10px', p: 1.2, mb: 1.4, bgcolor: '#F8FAFC' }}>
-                  <Typography fontWeight={700} sx={{ color: '#6D4CE7', mb: 0.7 }}>
+                  <Typography fontWeight={700} sx={{ color: '#6E51C5', mb: 0.7 }}>
                     Informações importantes
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" component="div">
-                    • Classificação: 14 anos (menores apenas acompanhados dos pais)
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" component="div">
-                    • Duração aproximada: 3 horas
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" component="div">
-                    • Estacionamento no local: R$ 80,00
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" component="div">
-                    • Acesso para pessoas com mobilidade reduzida
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" component="div">
-                    • Ingressos sujeitos à disponibilidade
-                  </Typography>
+                  {importantInfoItems.map((item, index) => (
+                    <Typography key={`important-info-${index}`} variant="caption" color="text.secondary" component="div">
+                      • {item}
+                    </Typography>
+                  ))}
                 </Box>
+                ) : null
               ) : null}
 
               {step === 0 ? (
@@ -656,7 +738,7 @@ function CheckoutPage() {
               </Stack>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.4 }}>
                 <Typography fontWeight={700}>{step === 3 ? 'Total pago:' : 'Total a pagar:'}</Typography>
-                <Typography fontWeight={800} sx={{ color: '#6D4CE7' }}>{formatPrice(summary.total)}</Typography>
+                <Typography fontWeight={800} sx={{ color: '#6E51C5' }}>{formatPrice(summary.total)}</Typography>
               </Stack>
 
               {error ? <Alert severity="error" sx={{ mb: 1.2, borderRadius: '10px' }}>{error}</Alert> : null}
@@ -671,22 +753,17 @@ function CheckoutPage() {
                     borderRadius: '10px',
                     py: 1,
                     fontWeight: 700,
-                    bgcolor: '#1F7A4D',
-                    '&:hover': { bgcolor: '#19643F' },
+                    background: FIGMA_GREEN_GRADIENT,
+                    boxShadow: '0 12px 24px rgba(52, 168, 83, 0.22)',
+                    '&:hover': {
+                      opacity: 0.93,
+                      boxShadow: '0 12px 24px rgba(52, 168, 83, 0.22)',
+                    },
                   }}
                 >
-                  {loading ? 'Processando...' : step === 2 ? 'Confirmar compra' : 'Continuar compra'}
+                  {loading ? 'Processando...' : step === 2 ? 'Finalizar compra' : 'Continuar compra'}
                 </Button>
-              ) : (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() => navigate('/tickets', { replace: true })}
-                  sx={{ borderRadius: '10px', py: 1, fontWeight: 700 }}
-                >
-                  Meus ingressos
-                </Button>
-              )}
+              ) : null}
 
               <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mt: 1.2 }}>
                 <LockRounded sx={{ color: '#16A34A', fontSize: 16 }} />
@@ -697,21 +774,61 @@ function CheckoutPage() {
 
               {step === 3 ? (
                 <Box sx={{ mt: 1.6, border: '1px solid #E2E8F0', borderRadius: '10px', p: 1.2 }}>
-                  <Typography fontWeight={700} sx={{ mb: 0.8 }}>{organizerName}</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    {organizerLogo ? (
+                      <Box
+                        component="img"
+                        src={organizerLogo}
+                        alt={organizerName}
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '8px',
+                          objectFit: 'cover',
+                          border: '1px solid #E2E8F0',
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '8px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          bgcolor: '#EEF2FF',
+                          color: '#6E51C5',
+                          fontWeight: 700,
+                          border: '1px solid #E2E8F0',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {(organizerName || 'O').slice(0, 1).toUpperCase()}
+                      </Box>
+                    )}
+                    <Typography fontWeight={700}>{organizerName}</Typography>
+                  </Stack>
                   <Stack spacing={0.8}>
                     <Button
-                      variant="outlined"
+                      variant="contained"
                       size="small"
+                      startIcon={<MailOutlineRounded />}
                       component={organizerEmail ? 'a' : 'button'}
                       href={organizerEmail ? `mailto:${organizerEmail}` : undefined}
                       disabled={!organizerEmail}
-                      sx={{ borderRadius: '10px' }}
+                      sx={{
+                        borderRadius: '10px',
+                        color: '#fff',
+                        '&.Mui-disabled': { color: 'rgba(255,255,255,0.7)' },
+                      }}
                     >
                       Entrar em contato
                     </Button>
                     <Button
                       variant="outlined"
                       size="small"
+                      startIcon={<OpenInNewRounded />}
                       disabled={!organizerTenantId}
                       onClick={() => organizerTenantId && navigate(`/organizers/${organizerTenantId}`)}
                       sx={{ borderRadius: '10px' }}
@@ -726,23 +843,79 @@ function CheckoutPage() {
         </Grid>
       </Grid>
 
-      <Dialog open={resultOpen} onClose={() => {}} disableEscapeKeyDown maxWidth="sm" fullWidth>
-        <DialogContent sx={{ py: 3 }}>
-          <Stack spacing={1.6} alignItems="center">
-            <Stack direction="row" spacing={0.6} alignItems="center">
-              <Typography variant="h6" fontWeight={700}>Estamos processando sua compra</Typography>
-              <Box sx={{ color: '#16A34A', display: 'grid', placeItems: 'center' }}>
-                <CheckRounded fontSize="small" />
-              </Box>
+      <SecurityInfoSection />
+
+      <Dialog
+        open={resultOpen}
+        onClose={() => setResultOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}
+      >
+        <DialogContent sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2.2, sm: 3.2 } }}>
+          <Stack spacing={2} alignItems="center">
+            <Stack direction="row" spacing={0.8} alignItems="center" justifyContent="center">
+              <Typography
+                sx={{
+                  fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.375rem' },
+                  fontWeight: 700,
+                  lineHeight: 1.15,
+                  color: '#2F3347',
+                  textAlign: 'center',
+                }}
+              >
+                Estamos processando sua compra!
+              </Typography>
+              <CheckRounded sx={{ color: '#22C55E', fontSize: { xs: 24, sm: 32 } }} />
             </Stack>
-            <Typography variant="body2" color="text.secondary" align="center">
-              Assim que o pagamento for confirmado, os seus ingressos estarão disponíveis para você.
+            <Typography
+              sx={{
+                fontSize: { xs: '0.875rem', sm: '0.9375rem', md: '1rem' },
+                color: '#64748B',
+                textAlign: 'center',
+                maxWidth: 620,
+              }}
+            >
+              Assim que o pagamento for confirmado, os seus ingressos estarão disponíveis para você!
             </Typography>
-            <Button fullWidth variant="contained" onClick={() => navigate('/tickets', { replace: true })} sx={{ borderRadius: '10px' }}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<ConfirmationNumberRounded />}
+              onClick={() => navigate('/tickets', { replace: true })}
+              sx={{
+                mt: 0.3,
+                borderRadius: '14px',
+                height: { xs: 50, sm: 54 },
+                fontSize: { xs: '1rem', sm: '1.06rem' },
+                fontWeight: 700,
+                background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                boxShadow: 'none',
+                '&:hover': {
+                  background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                  opacity: 0.95,
+                  boxShadow: 'none',
+                },
+              }}
+            >
               Meus ingressos
             </Button>
-            <Button fullWidth variant="outlined" onClick={() => navigate('/', { replace: true })} sx={{ borderRadius: '10px' }}>
-              Voltar à página inicial
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<CloseRounded />}
+              onClick={() => setResultOpen(false)}
+              sx={{
+                borderRadius: '14px',
+                height: { xs: 50, sm: 54 },
+                fontSize: { xs: '1rem', sm: '1.06rem' },
+                fontWeight: 700,
+                borderColor: '#94A3B8',
+                color: '#64748B',
+                '&:hover': { borderColor: '#64748B', backgroundColor: '#F8FAFC' },
+              }}
+            >
+              Fechar
             </Button>
           </Stack>
         </DialogContent>

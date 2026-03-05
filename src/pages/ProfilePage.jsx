@@ -243,21 +243,9 @@ function ProfilePage() {
           <Card sx={{ borderRadius: '12px' }}>
             <CardContent>
               <Stack spacing={1.6}>
-                <Typography variant="h6" fontWeight={700} sx={{ color: '#5f45da' }}>Dados cadastrais</Typography>
+                <Typography variant="h6" fontWeight={700} sx={{ color: '#6E51C5' }}>Dados cadastrais</Typography>
                 <Divider />
-                <FormControl fullWidth sx={fieldSx}>
-                  <InputLabel id="profile-method-label">Preferência de login</InputLabel>
-                  <Select
-                    labelId="profile-method-label"
-                    value={profileMethod}
-                    label="Preferência de login"
-                    onChange={(event) => setProfileMethod(event.target.value)}
-                  >
-                    <MenuItem value="phone"><Stack direction="row" spacing={1} alignItems="center"><PhoneIphoneRounded fontSize="small" /><Typography>Telefone</Typography></Stack></MenuItem>
-                    <MenuItem value="email"><Stack direction="row" spacing={1} alignItems="center"><EmailRounded fontSize="small" /><Typography>E-mail</Typography></Stack></MenuItem>
-                    <MenuItem value="cpf"><Stack direction="row" spacing={1} alignItems="center"><BadgeRounded fontSize="small" /><Typography>CPF</Typography></Stack></MenuItem>
-                  </Select>
-                </FormControl>
+      
                 <TextField label="Nome completo" sx={fieldSx} value={form.name} onChange={handleChange('name')} />
                 <TextField label="E-mail" sx={fieldSx} value={form.email} onChange={handleChange('email')} />
                 <PhoneWithCountryField
@@ -284,7 +272,7 @@ function ProfilePage() {
           <Card sx={{ borderRadius: '12px' }}>
             <CardContent>
               <Stack spacing={1.6}>
-                <Typography variant="h6" fontWeight={700} sx={{ color: '#5f45da' }}>Reconhecimento facial</Typography>
+                <Typography variant="h6" fontWeight={700} sx={{ color: '#6E51C5' }}>Reconhecimento facial</Typography>
                 <Divider />
                 <Card variant="outlined" sx={{ borderRadius: '10px' }}>
                   <CardContent>
@@ -331,8 +319,8 @@ function ProfilePage() {
               {verifyLoading ? 'Validando...' : 'Validar código'}
             </Button>
             <Stack direction="row" spacing={0.8} alignItems="center">
-              <AccessTimeFilledRounded sx={{ fontSize: 16, color: '#6d4ce7' }} />
-              <Typography sx={{ color: '#6d4ce7', fontWeight: 700 }}>{resendTimerLabel}</Typography>
+              <AccessTimeFilledRounded sx={{ fontSize: 16, color: '#6E51C5' }} />
+              <Typography sx={{ color: '#6E51C5', fontWeight: 700 }}>{resendTimerLabel}</Typography>
               <Typography color="text.secondary">para reenviar</Typography>
             </Stack>
             <Button
@@ -404,3 +392,5 @@ function ProfilePage() {
 }
 
 export default ProfilePage
+
+

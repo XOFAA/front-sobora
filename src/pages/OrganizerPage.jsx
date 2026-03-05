@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
@@ -160,7 +160,7 @@ function OrganizerPage() {
         <CardContent>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1.5} alignItems="center">
-              <Avatar src={organizerLogo || undefined} sx={{ width: 44, height: 44, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6d4ce7' }}>
+              <Avatar src={organizerLogo || undefined} sx={{ width: 44, height: 44, borderRadius: '8px', bgcolor: '#ede9fe', color: '#6E51C5' }}>
                 {String(organizerName).slice(0, 1).toUpperCase()}
               </Avatar>
               <Box>
@@ -262,7 +262,7 @@ function OrganizerPage() {
                           alignSelf: 'flex-start',
                           borderRadius: '10px',
                           bgcolor: 'rgba(109, 40, 217, 0.12)',
-                          color: '#6d4ce7',
+                          color: '#6E51C5',
                           fontWeight: 700,
                         }}
                       />
@@ -289,7 +289,7 @@ function OrganizerPage() {
                             <Typography variant="caption" color="text.secondary">
                               Ingressos a partir de
                             </Typography>
-                            <Typography fontWeight={700} sx={{ color: '#6d4ce7' }}>
+                            <Typography fontWeight={700} sx={{ color: '#6E51C5' }}>
                               {minPriceLabel}
                             </Typography>
                           </Stack>
@@ -322,3 +322,5 @@ function OrganizerPage() {
 }
 
 export default OrganizerPage
+
+
