@@ -1,9 +1,9 @@
-import { createTheme, alpha } from '@mui/material/styles'
+﻿import { createTheme, alpha } from '@mui/material/styles'
 
 const BRAND = '#6D28D9'
 const LILAC = '#A78BFA'
 const TEAL = '#22D3EE'
-const FIGMA_PURPLE_GRADIENT = 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)'
+const FIGMA_PURPLE_GRADIENT = 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)'
 const CONTAINED_HEIGHT = 46
 
 const BG = '#F7F7FB'
@@ -205,3 +205,4 @@ const theme = createTheme({
 })
 
 export default theme
+

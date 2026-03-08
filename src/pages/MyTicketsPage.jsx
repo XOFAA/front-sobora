@@ -449,6 +449,51 @@ function MyTicketsPage() {
   const getUseLabel = (ticket) =>
     ticket.used ? { label: 'Validado', color: 'success' } : { label: 'Não validado', color: 'default' }
 
+  const getTicketStatusBadges = (ticket) => {
+    const styles = {
+      valido: { label: 'Válido', sx: { bgcolor: '#D9F4E4', color: '#2E9B5D', border: '1px solid #A9E2C4' } },
+      processando: { label: 'Processando', sx: { bgcolor: '#D8EEF9', color: '#3A7EA4', border: '1px solid #B6DDF2' } },
+      utilizado: { label: 'Utilizado', sx: { bgcolor: '#F9DDE8', color: '#A84D6E', border: '1px solid #F0BED1' } },
+      transferido: { label: 'Transferido', sx: { bgcolor: '#E9E2FF', color: '#6E51C5', border: '1px solid #D8CCFF' } },
+      enviado: { label: 'Enviado', sx: { bgcolor: '#FDECC8', color: '#B87C1D', border: '1px solid #F8DFA5' } },
+      encerrado: { label: 'Encerrado', sx: { bgcolor: '#ECEFF3', color: '#64748B', border: '1px solid #D5DCE5' } },
+      cancelado: { label: 'Cancelado', sx: { bgcolor: '#FCE1DF', color: '#C44545', border: '1px solid #F7C2BE' } },
+    }
+
+    const badges = []
+
+    const orderStatus = ticket?.orderStatus || ''
+    const paymentStatus = ticket?.paymentStatus || ''
+    const transferStatus = ticket?.transfer?.status || ''
+    const isEnded = (() => {
+      const lastDate = getLastEventDate(ticket?.event)
+      return lastDate ? lastDate.getTime() < Date.now() : false
+    })()
+
+    const isCanceled =
+      orderStatus === 'CANCELED' || orderStatus === 'REFUNDED' || paymentStatus === 'FAILED' || paymentStatus === 'REFUNDED'
+    const isProcessing = orderStatus === 'PENDING' || paymentStatus === 'PENDING'
+    const isUsed = Boolean(ticket?.used)
+    const isSentTransfer = transferStatus === 'PENDING' && ticket?.transfer?.fromUserId === user?.id
+    const isTransferred = transferStatus === 'COMPLETED'
+    const isValid =
+      !isCanceled &&
+      !isProcessing &&
+      !isUsed &&
+      !isEnded &&
+      (orderStatus === 'PAID' || paymentStatus === 'SUCCEEDED' || (ticket?.price ?? 0) === 0)
+
+    if (isValid) badges.push(styles.valido)
+    if (isProcessing) badges.push(styles.processando)
+    if (isUsed) badges.push(styles.utilizado)
+    if (isTransferred) badges.push(styles.transferido)
+    if (isSentTransfer) badges.push(styles.enviado)
+    if (isEnded) badges.push(styles.encerrado)
+    if (isCanceled) badges.push(styles.cancelado)
+
+    return badges
+  }
+
   const canShowQr = (ticket) =>
     (ticket.orderStatus === 'PAID' || ticket.paymentStatus === 'SUCCEEDED') &&
     !isTransferPending(ticket, nowMs)
@@ -666,7 +711,7 @@ function MyTicketsPage() {
           color: '#fff',
           position: 'relative',
           overflow: 'hidden',
-          background: 'linear-gradient(135deg, #6b4cd6 0%, #5640b3 100%)',
+          background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
           boxShadow: '0 18px 32px rgba(67, 56, 103, 0.28)',
         }}
       >
@@ -737,13 +782,33 @@ function MyTicketsPage() {
           onChange={(_, value) => setTab(value)}
           variant="scrollable"
           scrollButtons="auto"
+          sx={{
+            '& .MuiTabs-indicator': {
+              height: 2,
+              borderRadius: '2px',
+              background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
+            },
+          }}
         >
-          <Tab value="ACTIVE" label={`Ativos (${tabCounts.ACTIVE})`} />
-          <Tab value="PENDING" label={`Pendentes (${tabCounts.PENDING})`} />
-          <Tab value="CANCELED" label={`Cancelados (${tabCounts.CANCELED})`} />
-          <Tab value="ENDED" label={`Encerrados (${tabCounts.ENDED})`} />
-          <Tab value="TRANSFERRED" label={`Transferidos (${tabCounts.TRANSFERRED})`} />
-          <Tab value="ORDERS" label={`Pedidos (${tabCounts.ORDERS})`} />
+          <Tab
+            value="ACTIVE"
+            label={`Ativos (${tabCounts.ACTIVE})`}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              color: '#64748B',
+              '&.Mui-selected': {
+                background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              },
+            }}
+          />
+          <Tab value="PENDING" label={`Pendentes (${tabCounts.PENDING})`} sx={{ textTransform: 'none', fontWeight: 700, color: '#64748B', '&.Mui-selected': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } }} />
+          <Tab value="CANCELED" label={`Cancelados (${tabCounts.CANCELED})`} sx={{ textTransform: 'none', fontWeight: 700, color: '#64748B', '&.Mui-selected': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } }} />
+          <Tab value="ENDED" label={`Encerrados (${tabCounts.ENDED})`} sx={{ textTransform: 'none', fontWeight: 700, color: '#64748B', '&.Mui-selected': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } }} />
+          <Tab value="TRANSFERRED" label={`Transferidos (${tabCounts.TRANSFERRED})`} sx={{ textTransform: 'none', fontWeight: 700, color: '#64748B', '&.Mui-selected': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } }} />
+          <Tab value="ORDERS" label={`Pedidos (${tabCounts.ORDERS})`} sx={{ textTransform: 'none', fontWeight: 700, color: '#64748B', '&.Mui-selected': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } }} />
         </Tabs>
       </Box>
 
@@ -830,7 +895,7 @@ function MyTicketsPage() {
                       px: 2,
                       py: 1.5,
                       background:
-                        'linear-gradient(120deg, rgba(109,40,217,0.16), rgba(167,139,250,0.18))',
+                        'linear-gradient(90deg, rgba(110, 81, 197, 0.16) 0%, rgba(87, 71, 168, 0.18) 100%)',
                     }}
                   >
                     <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
@@ -947,7 +1012,7 @@ function MyTicketsPage() {
                       mb: 1,
                       borderRadius: '8px',
                       height: 24,
-                      background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                      background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
                       color: '#fff',
                       fontWeight: 700,
                     }}
@@ -1011,10 +1076,11 @@ function MyTicketsPage() {
                       borderRadius: '12px',
                       px: 2.2,
                       py: 1,
+                      fontSize:14,
                       fontWeight: 700,
-                      background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                      background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
                       color: '#fff',
-                      '&:hover': { background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)', opacity: 0.95 },
+                      '&:hover': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', opacity: 0.95 },
                     }}
                   >
                     {expandedOrderKey === expandKey
@@ -1037,40 +1103,65 @@ function MyTicketsPage() {
                               alignItems={{ sm: 'flex-start' }}
                             >
                               <Box>
-                                <Typography sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.06rem' } }}>
+                                <Typography sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1rem' } }}>
                                   {ticket.type}
                                 </Typography>
                                 <Typography sx={{ color: '#6E51C5', fontSize: { xs: '1.3rem', sm: '1.4rem' }, fontWeight: 700 }}>
                                   {formatPriceOrFree(ticket.price)}
                                 </Typography>
                               </Box>
-                              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                                <Chip
-                                  size="small"
-                                  label={getPaymentLabel(ticket).label}
-                                  color={getPaymentLabel(ticket).color}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={getUseLabel(ticket).label}
-                                  color={getUseLabel(ticket).color}
-                                />
+                              <Stack spacing={0.5} sx={{ minWidth: 110 }}>
+                                {getTicketStatusBadges(ticket).map((badge) => (
+                                  <Chip
+                                    key={`${ticket.id}-${badge.label}`}
+                                    size="small"
+                                    label={badge.label}
+                                    sx={{
+                                      height: 22,
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      borderRadius: '8px',
+                                      ...badge.sx,
+                                    }}
+                                  />
+                                ))}
+                                {ticket.transfer?.status === 'EXPIRED' ? (
+                                  <Chip
+                                    size="small"
+                                    label="Transferência expirada"
+                                    sx={{
+                                      height: 22,
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      borderRadius: '8px',
+                                      bgcolor: '#ECEFF3',
+                                      color: '#64748B',
+                                      border: '1px solid #D5DCE5',
+                                    }}
+                                  />
+                                ) : null}
                                 {isTransferPending(ticket, nowMs) ? (
                                   <Chip
                                     size="small"
                                     label={`Transferindo (${formatRemaining(getTransferRemainingMs(ticket, nowMs))})`}
-                                    color="warning"
+                                    sx={{
+                                      height: 22,
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      borderRadius: '8px',
+                                      bgcolor: '#FDECC8',
+                                      color: '#B87C1D',
+                                      border: '1px solid #F8DFA5',
+                                    }}
                                   />
-                                ) : null}
-                                {ticket.transfer?.status === 'EXPIRED' ? (
-                                  <Chip size="small" label="Transferência expirada" color="default" />
                                 ) : null}
                               </Stack>
                             </Stack>
 
                             <Typography variant="body2" color="text.secondary">
-                              {ticket.description || 'Acesso ao setor conforme disponibilidade do evento.'}
+                              {ticket?.description || 'Acesso ao setor conforme disponibilidade do evento.'}
                             </Typography>
+
 
                             {isTransferPending(ticket, nowMs) &&
                             ticket.transfer?.fromUserId === user?.id &&
@@ -1099,8 +1190,8 @@ function MyTicketsPage() {
                                 height: { xs: 40, sm: 42 },
                                 fontSize: { xs: '0.9rem', sm: '0.95rem' },
                                 fontWeight: 700,
-                                background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
-                                '&:hover': { background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)', opacity: 0.95 },
+                                background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
+                                '&:hover': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', opacity: 0.95 },
                               }}
                             >
                               Ver ingresso
@@ -1336,8 +1427,8 @@ function MyTicketsPage() {
                 borderRadius: '10px',
                 py: 1,
                 fontWeight: 700,
-                background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
-                '&:hover': { background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)', opacity: 0.95 },
+                background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
+                '&:hover': { background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)', opacity: 0.95 },
               }}
             >
               Fechar

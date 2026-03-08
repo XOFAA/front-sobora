@@ -889,10 +889,10 @@ function CheckoutPage() {
                 height: { xs: 50, sm: 54 },
                 fontSize: { xs: '1rem', sm: '1.06rem' },
                 fontWeight: 700,
-                background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
                 boxShadow: 'none',
                 '&:hover': {
-                  background: 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)',
+                  background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
                   opacity: 0.95,
                   boxShadow: 'none',
                 },
@@ -925,3 +925,4 @@ function CheckoutPage() {
 }
 
 export default CheckoutPage
+

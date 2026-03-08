@@ -58,7 +58,7 @@ function LeftPanel() {
       sx={{
         display: { xs: 'none', md: 'block' },
         bgcolor: '#5b45b2',
-        background: 'linear-gradient(180deg, #6d4ce7 0%, #4a3b89 100%)',
+        background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
         color: '#fff',
         p: { xs: 3, md: 4 },
         height: '100%',
@@ -154,10 +154,20 @@ function AuthPage() {
     }
     try {
       setRequestingCode(true)
-      await requestCode(identifier)
+      const data = await requestCode(identifier)
       sessionStorage.setItem('login_identifier', identifier)
       sessionStorage.setItem('login_identifier_label', identifierLabel)
-      navigate('/login/code', { state: { identifier, identifierLabel, redirectTo, redirectState } })
+      navigate('/login/code', {
+        state: {
+          identifier,
+          identifierLabel,
+          redirectTo,
+          redirectState,
+          resendInSeconds: data?.resendInSeconds || 30,
+          expiresInSeconds: data?.expiresInSeconds || 300,
+          requestNonce: Date.now(),
+        },
+      })
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao enviar código.')
     } finally {
@@ -204,10 +214,20 @@ function AuthPage() {
       const registerCodeMethod = 'email'
       const identifier = buildLoginIdentifier(registerCodeMethod, fallbackInput)
       const identifierLabel = getIdentifierLabel(registerCodeMethod, fallbackInput)
-      await requestCode(identifier)
+      const data = await requestCode(identifier)
       sessionStorage.setItem('login_identifier', identifier)
       sessionStorage.setItem('login_identifier_label', identifierLabel)
-      navigate('/login/code', { state: { identifier, identifierLabel, redirectTo, redirectState } })
+      navigate('/login/code', {
+        state: {
+          identifier,
+          identifierLabel,
+          redirectTo,
+          redirectState,
+          resendInSeconds: data?.resendInSeconds || 30,
+          expiresInSeconds: data?.expiresInSeconds || 300,
+          requestNonce: Date.now(),
+        },
+      })
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao cadastrar.')
     } finally {
@@ -351,5 +371,7 @@ function AuthPage() {
 }
 
 export default AuthPage
+
+
 
 

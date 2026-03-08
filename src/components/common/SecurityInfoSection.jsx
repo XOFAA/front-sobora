@@ -1,7 +1,7 @@
 ﻿import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material'
 import Grid from '@mui/material/Grid'
 
-const FIGMA_PURPLE_GRADIENT = 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)'
+const FIGMA_PURPLE_GRADIENT = 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)'
 
 function SecurityInfoSection({ sx }) {
   return (
@@ -166,6 +166,7 @@ function SecurityInfoSection({ sx }) {
 }
 
 export default SecurityInfoSection
+
 
 
 

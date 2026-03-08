@@ -33,6 +33,7 @@ import { fetchEvent, fetchTicketTypes } from '../services/events'
 import { createOrder } from '../services/orders'
 import { useAuth } from '../contexts/AuthContext'
 import SecurityInfoSection from '../components/common/SecurityInfoSection'
+import { fetchMyTickets } from '../services/tickets'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
 const FIGMA_GREEN_GRADIENT = 'linear-gradient(90deg, #34A853 0%, #315951 100%)'
@@ -138,6 +139,7 @@ function EventDetailsPage() {
   const [redeemOpen, setRedeemOpen] = useState(false)
   const [ticketSheetOpen, setTicketSheetOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
+  const [ownedFreeByTicketTypeId, setOwnedFreeByTicketTypeId] = useState({})
   const restoredSelectionRef = useRef(false)
 
   useEffect(() => {
@@ -174,6 +176,34 @@ function EventDetailsPage() {
       active = false
     }
   }, [id])
+
+  useEffect(() => {
+    let active = true
+    const loadOwnedTickets = async () => {
+      if (!user?.id) {
+        setOwnedFreeByTicketTypeId({})
+        return
+      }
+      try {
+        const myTickets = await fetchMyTickets()
+        if (!active) return
+        const map = (myTickets || []).reduce((acc, item) => {
+          const ticketTypeId = item?.ticketTypeId
+          const price = Number(item?.price || 0)
+          if (!ticketTypeId || price !== 0) return acc
+          acc[ticketTypeId] = (acc[ticketTypeId] || 0) + 1
+          return acc
+        }, {})
+        setOwnedFreeByTicketTypeId(map)
+      } catch {
+        if (active) setOwnedFreeByTicketTypeId({})
+      }
+    }
+    loadOwnedTickets()
+    return () => {
+      active = false
+    }
+  }, [user?.id])
   useEffect(() => {
     if (restoredSelectionRef.current) return
     const prefill = location.state?.prefillTicketQuantities
@@ -224,9 +254,29 @@ function EventDetailsPage() {
       (ticket?.price || 0) === 0 &&
       Number.isInteger(ticket?.maxFreePerUser) &&
       (ticket?.maxFreePerUser || 0) > 0
-    const freeLimit = isLimitedFree ? ticket.maxFreePerUser : Number.POSITIVE_INFINITY
+    const alreadyOwned = isLimitedFree ? Number(ownedFreeByTicketTypeId[ticket?.id] || 0) : 0
+    const remainingFree = isLimitedFree ? Math.max(0, ticket.maxFreePerUser - alreadyOwned) : Number.POSITIVE_INFINITY
+    const freeLimit = remainingFree
     return Math.min(stockLimit, freeLimit)
   }
+
+  useEffect(() => {
+    if (!ticketTypes.length) return
+    setQuantities((prev) => {
+      let changed = false
+      const next = { ...prev }
+      ticketTypes.forEach((ticket) => {
+        const current = Number(next[ticket.id] || 0)
+        if (!current) return
+        const maxSelectable = getMaxSelectableByTicket(ticket)
+        if (current > maxSelectable) {
+          next[ticket.id] = maxSelectable
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [ticketTypes, ownedFreeByTicketTypeId])
 
   const minPrice = useMemo(() => {
     const prices = ticketTypes.map((ticket) => ticket.price || 0).filter((price) => price > 0)
@@ -335,6 +385,22 @@ function EventDetailsPage() {
       })
     if (!selected.length) {
       setError('Selecione ao menos um ingresso.')
+      return
+    }
+    const exceedsFreeLimit = selected.some((item) => {
+      const ticketType = ticketTypes.find((ticket) => ticket.id === item.ticketTypeId)
+      if (!ticketType) return false
+      const isLimitedFree =
+        (ticketType?.price || 0) === 0 &&
+        Number.isInteger(ticketType?.maxFreePerUser) &&
+        (ticketType?.maxFreePerUser || 0) > 0
+      if (!isLimitedFree) return false
+      const alreadyOwned = Number(ownedFreeByTicketTypeId[ticketType.id] || 0)
+      const remaining = Math.max(0, ticketType.maxFreePerUser - alreadyOwned)
+      return item.quantity > remaining
+    })
+    if (exceedsFreeLimit) {
+      setError('Você já atingiu o limite de resgate do ingresso gratuito para este evento.')
       return
     }
     const isFreeOnlySelection = selected.every((item) => (item.price || 0) === 0)
@@ -554,9 +620,22 @@ function EventDetailsPage() {
                 </Button>
               </Stack>
               {(ticket.price || 0) === 0 && Number.isInteger(ticket.maxFreePerUser) && ticket.maxFreePerUser > 0 ? (
-                <Typography variant="caption" color="text.secondary">
-                  Limite por usuário: {ticket.maxFreePerUser}
-                </Typography>
+                <Stack spacing={0.2}>
+                  <Typography variant="caption" color="text.secondary">
+                    Limite por usuário: {ticket.maxFreePerUser}
+                  </Typography>
+                  {user?.id ? (
+                    <Typography variant="caption" color="text.secondary">
+                      Restantes para você: {Math.max(0, ticket.maxFreePerUser - Number(ownedFreeByTicketTypeId[ticket.id] || 0))}
+                    </Typography>
+                  ) : null}
+                  {user?.id &&
+                  Math.max(0, ticket.maxFreePerUser - Number(ownedFreeByTicketTypeId[ticket.id] || 0)) === 0 ? (
+                    <Typography variant="caption" sx={{ color: '#B91C1C' }}>
+                      Você já utilizou seu limite deste ingresso gratuito.
+                    </Typography>
+                  ) : null}
+                </Stack>
               ) : null}
               {isFixedHalfTicket ? (
                 <Box>

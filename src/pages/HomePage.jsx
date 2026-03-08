@@ -51,7 +51,7 @@ const movingGradient = keyframes`
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 `
-const FIGMA_PURPLE_GRADIENT = 'linear-gradient(90deg, #6E51C5 0%, #5747A8 100%)'
+const FIGMA_PURPLE_GRADIENT = 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)'
 const HOME_ACTION_HEIGHT = 46
 const HOME_ACTION_FONT = { xs: '0.84rem', md: '0.94rem' }
 
@@ -641,4 +641,6 @@ function HomePage() {
 }
 
 export default HomePage
+
+
 

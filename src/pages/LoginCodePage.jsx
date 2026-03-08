@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext'
 import OtpInput from '../components/auth/OtpInput'
 
 const RESEND_SECONDS = 30
+const CODE_EXPIRES_SECONDS = 5 * 60
 
 function LeftPanel() {
   return (
@@ -26,7 +27,7 @@ function LeftPanel() {
       sx={{
         display: { xs: 'none', md: 'block' },
         bgcolor: '#5b45b2',
-        background: 'linear-gradient(180deg, #6d4ce7 0%, #4a3b89 100%)',
+        background: 'linear-gradient(115deg, #6E51C5, #5747A8, #42386C, #6E51C5)',
         color: '#fff',
         p: { xs: 3, md: 4 },
         height: '100%',
@@ -83,7 +84,8 @@ function LoginCodePage() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [resendLeft, setResendLeft] = useState(RESEND_SECONDS)
+  const [resendLeft, setResendLeft] = useState(() => Number(location.state?.resendInSeconds || RESEND_SECONDS))
+  const [codeExpiresLeft, setCodeExpiresLeft] = useState(() => Number(location.state?.expiresInSeconds || CODE_EXPIRES_SECONDS))
   const [loggingIn, setLoggingIn] = useState(false)
   const [resendingCode, setResendingCode] = useState(false)
   const lastAutoSubmittedCodeRef = useRef('')
@@ -104,12 +106,34 @@ function LoginCodePage() {
   }, [location.state?.identifier, location.state?.identifierLabel, location.state?.redirectTo, location.state?.redirectState])
 
   useEffect(() => {
+    // Sempre que abrir/reabrir a tela de validação, limpa o campo para novo código.
+    setCode('')
+    setError('')
+    setSuccess('')
+    lastAutoSubmittedCodeRef.current = ''
+    if (location.state?.resendInSeconds != null) {
+      setResendLeft(Number(location.state.resendInSeconds) || RESEND_SECONDS)
+    }
+    if (location.state?.expiresInSeconds != null) {
+      setCodeExpiresLeft(Number(location.state.expiresInSeconds) || CODE_EXPIRES_SECONDS)
+    }
+  }, [location.key, location.state?.requestNonce])
+
+  useEffect(() => {
     if (resendLeft <= 0) return undefined
     const timer = setInterval(() => {
       setResendLeft((prev) => prev - 1)
     }, 1000)
     return () => clearInterval(timer)
   }, [resendLeft])
+
+  useEffect(() => {
+    if (codeExpiresLeft <= 0) return undefined
+    const timer = setInterval(() => {
+      setCodeExpiresLeft((prev) => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [codeExpiresLeft])
 
   const handleLogin = async () => {
     if (loggingIn) return
@@ -157,9 +181,12 @@ function LoginCodePage() {
     }
     try {
       setResendingCode(true)
-      await requestCode(identifier)
+      const data = await requestCode(identifier)
+      setCode('')
+      lastAutoSubmittedCodeRef.current = ''
       setSuccess('Código reenviado. Verifique seu e-mail ou WhatsApp.')
-      setResendLeft(RESEND_SECONDS)
+      setResendLeft(Number(data?.resendInSeconds || RESEND_SECONDS))
+      setCodeExpiresLeft(Number(data?.expiresInSeconds || CODE_EXPIRES_SECONDS))
     } catch (err) {
       setError(err?.response?.data?.message || 'Falha ao reenviar código.')
     } finally {
@@ -168,6 +195,7 @@ function LoginCodePage() {
   }
 
   const timerLabel = `${String(Math.floor(resendLeft / 60)).padStart(2, '0')}:${String(resendLeft % 60).padStart(2, '0')}`
+  const codeExpiresLabel = `${String(Math.floor(codeExpiresLeft / 60)).padStart(2, '0')}:${String(codeExpiresLeft % 60).padStart(2, '0')}`
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
@@ -201,6 +229,9 @@ function LoginCodePage() {
                 <Typography sx={{ color: '#6E51C5', fontWeight: 700 }}>{timerLabel}</Typography>
                 <Typography color="text.secondary">para reenviar</Typography>
               </Stack>
+              <Typography variant="caption" color="text.secondary" textAlign="center">
+                Código válido por {codeExpiresLabel}
+              </Typography>
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
                 <Button variant="text" startIcon={<EditRounded />} onClick={() => navigate('/login', { state: { from: { pathname: redirectTo, state: redirectState } } })}>
@@ -228,6 +259,8 @@ function LoginCodePage() {
 }
 
 export default LoginCodePage
+
+
 
 
 
